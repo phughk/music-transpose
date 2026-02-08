@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scale Transposer</title>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --card: #2d2d2d;
+            --text: #e0e0e0;
+            --accent: #bb86fc;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 800px; width: 100%; background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { margin-top: 0; color: var(--accent); }
+        .row { display: flex; gap: 10px; margin-bottom: 20px; align-items: flex-end; flex-wrap: wrap; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        input, select, textarea { background: #3d3d3d; border: 1px solid #555; color: white; padding: 8px; border-radius: 4px; }
+        button { background: var(--accent); color: black; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { filter: brightness(1.1); }
+        .scale-display { background: #121212; padding: 15px; border-radius: 8px; font-size: 1.2rem; border-left: 5px solid var(--accent); min-height: 30px; }
+        .tone-tag { display: inline-block; background: #444; padding: 5px 10px; margin: 5px; border-radius: 4px; }
+        .tone-tag span { color: var(--accent); margin-right: 8px; cursor: pointer; }
+        textarea { width: 100%; height: 60px; box-sizing: border-box; font-family: monospace; resize: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Scale Transposer</h1>
+    
+    <div class="row">
+        <div class="input-group">
+            <label>Root Note</label>
+            <select id="rootNote" onchange="calculateScale()">
+                <option value="0">C</option>
+                <option value="1">C# / Db</option>
+                <option value="2">D</option>
+                <option value="3">D# / Eb</option>
+                <option value="4">E</option>
+                <option value="5">F</option>
+                <option value="6">F# / Gb</option>
+                <option value="7">G</option>
+                <option value="8">G# / Ab</option>
+                <option value="9">A</option>
+                <option value="10">A# / Bb</option>
+                <option value="11">B</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Add Tone (Semitones from Root)</label>
+            <input type="number" id="newTone" placeholder="e.g. 3" min="0">
+        </div>
+        <button onclick="addTone()">Add Tone</button>
+        <button onclick="resetScale()" style="background: #cf6679;">Reset</button>
+    </div>
+
+    <div class="input-group" style="margin-bottom: 20px;">
+        <label>Copy/Paste Commands (Spaces separated semitones)</label>
+        <textarea id="cmdBox" placeholder="Example: 0 2 4 5 7 9 11 12" oninput="parseCommands()"></textarea>
+    </div>
+
+    <h3>Active Scale Intervals</h3>
+    <div id="intervalList" style="margin-bottom: 20px;"></div>
+
+    <h3>Resulting Notes</h3>
+    <div id="scaleDisplay" class="scale-display"></div>
+</div>
+
+<script>
+    const chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    let intervals = [0, 2, 4, 5, 7, 9, 11, 12]; // Default Major Scale
+
+    function calculateScale() {
+        const root = parseInt(document.getElementById('rootNote').value);
+        const display = document.getElementById('scaleDisplay');
+        const list = document.getElementById('intervalList');
+        const cmdBox = document.getElementById('cmdBox');
+
+        // Sort intervals numerically
+        intervals.sort((a, b) => a - b);
+        
+        // Update list tags
+        list.innerHTML = '';
+        intervals.forEach((semi, index) => {
+            const tag = document.createElement('div');
+            tag.className = 'tone-tag';
+            tag.innerHTML = `<span onclick="removeTone(${index})">×</span> ${semi} semitones`;
+            list.appendChild(tag);
+        });
+
+        // Update Text Result
+        const notes = intervals.map(semi => {
+            const noteIdx = (root + semi) % 12;
+            return chromatic[noteIdx];
+        });
+        display.innerText = notes.join(" — ");
+        
+        // Update command box without triggering parse
+        cmdBox.value = intervals.join(" ");
+    }
+
+    function addTone() {
+        const input = document.getElementById('newTone');
+        const val = parseInt(input.value);
+        if (!isNaN(val) && !intervals.includes(val)) {
+            intervals.push(val);
+            calculateScale();
+            input.value = '';
+        }
+    }
+
+    function removeTone(index) {
+        intervals.splice(index, 1);
+        calculateScale();
+    }
+
+    function resetScale() {
+        intervals = [0];
+        calculateScale();
+    }
+
+    function parseCommands() {
+        const input = document.getElementById('cmdBox').value;
+        const parts = input.trim().split(/\s+/);
+        const newIntervals = parts.map(p => parseInt(p)).filter(p => !isNaN(p));
+        if (newIntervals.length > 0) {
+            intervals = [...new Set(newIntervals)]; // Remove duplicates
+            calculateScale();
+        }
+    }
+
+    // Initial load
+    calculateScale();
+</script>
+
+</body>
+</html>
