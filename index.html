@@ -3,38 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Musical Theory Tool - Scales & Rhythms</title>
+    <title>Theory Tool - Composite Rhythms</title>
     <style>
         :root {
-            --bg: #1a1a1a;
-            --card: #2d2d2d;
-            --text: #e0e0e0;
-            --accent: #bb86fc;
-            --secondary: #03dac6;
-            --beat-on: #03dac6;
-            --beat-off: #444;
+            --bg: #1a1a1a; --card: #2d2d2d; --text: #e0e0e0;
+            --accent: #bb86fc; --secondary: #03dac6;
         }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 800px; width: 100%; background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 30px; }
-        h1 { margin-top: 0; color: var(--accent); }
-        h3 { border-bottom: 1px solid #444; padding-bottom: 5px; margin-top: 25px; }
-        .row { display: flex; gap: 10px; margin-bottom: 20px; align-items: flex-end; flex-wrap: wrap; }
+        .container { max-width: 900px; width: 100%; background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 20px; }
+        .row { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; flex-wrap: wrap; }
         .input-group { display: flex; flex-direction: column; gap: 5px; }
-        input, select, textarea { background: #3d3d3d; border: 1px solid #555; color: white; padding: 8px; border-radius: 4px; }
-        button { background: var(--accent); color: black; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        .preset-btn { background: var(--secondary); font-size: 0.85rem; }
-        .display-area { background: #121212; padding: 20px; border-radius: 8px; font-size: 1.4rem; border-left: 5px solid var(--accent); min-height: 35px; letter-spacing: 1px; }
-        .tone-tag { display: inline-block; background: #444; padding: 5px 10px; margin: 5px; border-radius: 4px; font-size: 0.9rem; }
-        .tone-tag span { color: #ff5252; margin-right: 8px; cursor: pointer; font-weight: bold; }
-        textarea { width: 100%; height: 50px; box-sizing: border-box; font-family: monospace; resize: none; margin-top: 10px; }
-        
-        /* Rhythm Specific Styles */
-        .rhythm-visualizer { display: flex; gap: 5px; margin-top: 15px; flex-wrap: wrap; }
-        .beat-cell { width: 30px; height: 30px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; color: rgba(0,0,0,0.5); }
-        .on { background: var(--beat-on); box-shadow: 0 0 10px var(--beat-on); }
-        .off { background: var(--beat-off); }
-        .help-text { font-size: 0.85rem; color: #aaa; margin-top: 5px; }
+        input, select, textarea { background: #3d3d3d; border: 1px solid #555; color: white; padding: 6px; border-radius: 4px; }
+        button { background: var(--accent); color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .track-card { background: #1f1f1f; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--secondary); }
+        .rhythm-visualizer { display: flex; gap: 3px; margin-top: 15px; flex-wrap: wrap; background: #000; padding: 10px; border-radius: 4px; }
+        .beat-cell { width: 22px; height: 22px; border-radius: 2px; font-size: 0.6rem; display: flex; align-items: center; justify-content: center; }
+        .on { background: var(--secondary); color: black; box-shadow: 0 0 5px var(--secondary); }
+        .off { background: #333; color: #666; }
+        .master-off { border: 1px solid #cf6679; opacity: 0.3; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -42,128 +29,132 @@
 <div class="container">
     <h1>Scale Transposer</h1>
     <div class="row">
-        <div class="input-group">
-            <label>Root Note</label>
-            <select id="rootNote" onchange="calculateScale()">
-                <option value="0">C</option><option value="1">C# / Db</option><option value="2">D</option>
-                <option value="3">D# / Eb</option><option value="4">E</option><option value="5">F</option>
-                <option value="6">F# / Gb</option><option value="7">G</option><option value="8">G# / Ab</option>
-                <option value="9">A</option><option value="10">A# / Bb</option><option value="11">B</option>
-            </select>
-        </div>
-        <div class="input-group">
-            <label>Add Semitone</label>
-            <input type="number" id="newTone" placeholder="e.g. 7" min="0">
-        </div>
-        <button onclick="addTone()">Add</button>
-        <button onclick="resetScale()" style="background: #cf6679;">Clear</button>
+        <select id="rootNote" onchange="calculateScale()"><option value="0">C</option><option value="2">D</option><option value="4">E</option><option value="5">F</option><option value="7">G</option><option value="9">A</option><option value="11">B</option></select>
+        <button onclick="applyPreset([0, 2, 4, 5, 7, 9, 11, 12])">Major</button>
+        <button onclick="applyPreset([0, 2, 3, 5, 7, 9, 10, 12])">Dorian</button>
     </div>
-    <div class="row">
-        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 5, 7, 9, 11, 12])">Major</button>
-        <button class="preset-btn" onclick="applyPreset([0, 2, 3, 5, 7, 8, 10, 12])">Minor</button>
-        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 5, 7, 9, 10, 12])">Mixolydian</button>
-        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 7, 9, 12])">Pentatonic</button>
-        <button class="preset-btn" onclick="applyPreset([0, 2, 3, 5, 7, 9, 10, 12])">Dorian</button>
-    </div>
-    <textarea id="cmdBox" oninput="parseCommands()"></textarea>
-    <div id="intervalList" style="margin-top: 10px;"></div>
-    <h3>Resulting Scale</h3>
-    <div id="scaleDisplay" class="display-area"></div>
+    <div id="scaleDisplay" style="background:#121212; padding:15px; border-radius:8px;"></div>
 </div>
 
 <div class="container">
-    <h1>Rhythm Generator</h1>
-    <div class="row">
+    <div class="header-row">
+        <h1>Composite Rhythm Generator</h1>
         <div class="input-group">
-            <label>Master Activator (ON/TOTAL)</label>
-            <div style="display: flex; gap: 5px;">
-                <input type="number" id="actOn" value="2" style="width: 50px;">
-                <span style="align-self: center;">/</span>
-                <input type="number" id="actTotal" value="4" style="width: 50px;">
-            </div>
+            <label>Global Resolution (Ticks)</label>
+            <input type="number" id="globalRes" value="32" style="width: 60px;" oninput="generate()">
         </div>
-        <div class="input-group">
-            <label>Beat Pulse (TOTAL)</label>
-            <input type="number" id="beatRes" value="16" style="width: 80px;">
-        </div>
-        <button onclick="generateRhythm()">Generate</button>
     </div>
-    <p class="help-text">The Activator pattern is repeated across the total Beat Pulse resolution.</p>
-    
-    <h3>Rhythm Visualizer</h3>
+
+    <h3>1. Master Activators</h3>
+    <p style="font-size: 0.8rem; color: #aaa;">Notes only play if these cycles are "On". Format: On/Total/Offset (e.g., 2/4/0)</p>
+    <p style="font-size: 0.8rem; color: #aaa;">On = Pulse Width = How many consecutive ticks the gate stays "open."</p>
+    <p style="font-size: 0.8rem; color: #aaa;">Total = Cycle Length = The total length of the loop before it repeats.</p>
+    <p style="font-size: 0.8rem; color: #aaa;">Offset = Phase Shift = Shifting the starting point of the loop (Syncopation).</p>
+    <div id="masterActivators" class="row">
+        <input type="text" id="masterInput" value="2/4/0" placeholder="2/4/0 1/8/2">
+        <button onclick="generate()">Apply Master</button>
+    </div>
+
+    <div class="header-row">
+        <h3>2. Beat Tracks</h3>
+        <button onclick="addTrack()" class="preset-btn">+ Add Track</button>
+    </div>
+    <div id="tracksContainer"></div>
+
+    <h3>Output Visualizer</h3>
     <div id="rhythmOutput" class="rhythm-visualizer"></div>
-    <div id="binaryString" class="help-text" style="margin-top: 15px; font-family: monospace;"></div>
 </div>
 
 <script>
-    // --- Scale Logic ---
+    // --- Scale Logic (Simplified for brevity) ---
     const chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    let intervals = [0, 2, 4, 5, 7, 9, 11, 12]; 
-
+    let intervals = [0, 2, 4, 5, 7, 9, 11, 12];
     function calculateScale() {
         const root = parseInt(document.getElementById('rootNote').value);
-        const display = document.getElementById('scaleDisplay');
-        const list = document.getElementById('intervalList');
-        const cmdBox = document.getElementById('cmdBox');
-        intervals.sort((a, b) => a - b);
-        list.innerHTML = '';
-        intervals.forEach((semi, index) => {
-            const tag = document.createElement('div');
-            tag.className = 'tone-tag';
-            tag.innerHTML = `<span onclick="removeTone(${index})">×</span> ${semi}`;
-            list.appendChild(tag);
-        });
-        const notes = intervals.map(semi => chromatic[(root + semi) % 12]);
-        display.innerText = notes.join("  ");
-        cmdBox.value = intervals.join(" ");
+        const notes = intervals.map(s => chromatic[(root + s) % 12]);
+        document.getElementById('scaleDisplay').innerText = notes.join(" — ");
     }
-
-    function applyPreset(arr) { intervals = [...arr]; calculateScale(); }
-    function addTone() {
-        const input = document.getElementById('newTone');
-        const val = parseInt(input.value);
-        if (!isNaN(val) && !intervals.includes(val)) { intervals.push(val); calculateScale(); input.value = ''; }
-    }
-    function removeTone(index) { intervals.splice(index, 1); calculateScale(); }
-    function resetScale() { intervals = [0]; calculateScale(); }
-    function parseCommands() {
-        const input = document.getElementById('cmdBox').value;
-        const parts = input.trim().split(/\s+/);
-        const newIntervals = parts.map(p => parseInt(p)).filter(p => !isNaN(p));
-        if (newIntervals.length > 0) { intervals = [...new Set(newIntervals)]; calculateScale(); }
-    }
+    function applyPreset(arr) { intervals = arr; calculateScale(); }
 
     // --- Rhythm Logic ---
-    function generateRhythm() {
-        const on = parseInt(document.getElementById('actOn').value);
-        const total = parseInt(document.getElementById('actTotal').value);
-        const res = parseInt(document.getElementById('beatRes').value);
+    let tracks = [{ id: Date.now(), period: 4, offset: 0, activators: "1/1/0" }];
+
+    function addTrack() {
+        tracks.push({ id: Date.now(), period: 1, offset: 0, activators: "1/1/0" });
+        renderTracks();
+    }
+
+    function removeTrack(id) {
+        tracks = tracks.filter(t => t.id !== id);
+        renderTracks();
+    }
+
+    function updateTrack(id, field, value) {
+        const track = tracks.find(t => t.id === id);
+        track[field] = value;
+        generate();
+    }
+
+    function renderTracks() {
+        const container = document.getElementById('tracksContainer');
+        container.innerHTML = '';
+        tracks.forEach(t => {
+            const div = document.createElement('div');
+            div.className = 'track-card';
+            div.innerHTML = `
+                <div class="row">
+                    <div class="input-group"><label>Period</label><input type="number" value="${t.period}" oninput="updateTrack(${t.id}, 'period', parseInt(this.value))" style="width:50px"></div>
+                    <div class="input-group"><label>Offset</label><input type="number" value="${t.offset}" oninput="updateTrack(${t.id}, 'offset', parseInt(this.value))" style="width:50px"></div>
+                    <div class="input-group"><label>Track Activators (On/Total/Offset)</label><input type="text" value="${t.activators}" oninput="updateTrack(${t.id}, 'activators', this.value)" style="width:200px"></div>
+                    <button onclick="removeTrack(${t.id})" style="background:#cf6679">×</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+        generate();
+    }
+
+    function checkActivator(tick, str) {
+        if (!str.trim()) return true;
+        const cycles = str.trim().split(/\s+/);
+        return cycles.every(c => {
+            const [on, total, offset] = c.split('/').map(Number);
+            const pos = (tick + (offset || 0)) % total;
+            return pos < on;
+        });
+    }
+
+    function generate() {
+        const res = parseInt(document.getElementById('globalRes').value);
+        const masterStr = document.getElementById('masterInput').value;
         const output = document.getElementById('rhythmOutput');
-        const binText = document.getElementById('binaryString');
-        
         output.innerHTML = '';
-        let result = [];
 
         for (let i = 0; i < res; i++) {
-            // Logic: Calculate current position in the activator cycle
-            // The activator is 'on' for the first 'on' units of 'total'
-            const stepInCycle = i % total;
-            const isActive = stepInCycle < on;
-            
+            const isMasterOn = checkActivator(i, masterStr);
+            let isNoteTriggered = false;
+
+            tracks.forEach(t => {
+                // Check if tick hits the period pulse
+                if ((i - t.offset) % t.period === 0 && i >= t.offset) {
+                    // Check if track's internal activators allow it
+                    if (checkActivator(i, t.activators)) {
+                        isNoteTriggered = true;
+                    }
+                }
+            });
+
+            const active = isMasterOn && isNoteTriggered;
             const cell = document.createElement('div');
-            cell.className = `beat-cell ${isActive ? 'on' : 'off'}`;
-            cell.innerText = i + 1;
+            cell.className = `beat-cell ${active ? 'on' : 'off'} ${!isMasterOn ? 'master-off' : ''}`;
+            cell.innerText = i;
             output.appendChild(cell);
-            result.push(isActive ? "1" : "0");
         }
-        
-        binText.innerText = "Binary: " + result.join(" ");
     }
 
     // Init
     calculateScale();
-    generateRhythm();
+    renderTracks();
 </script>
-
 </body>
 </html>
