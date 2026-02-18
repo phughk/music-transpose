@@ -26,17 +26,21 @@
         .master-off { border: 1px solid #cf6679; opacity: 0.3; }
         .header-row { display: flex; justify-content: space-between; align-items: center; }
         
-        /* New styles for Chord Matrix */
+        /* Styles for Chord Matrix */
         .chord-matrix-container { background: #121212; padding: 20px; border-radius: 8px; margin-top: 10px; border-left: 4px solid #bb86fc; }
-        .chord-selectors { display: flex; gap: 15px; flex-wrap: wrap; }
+        .chord-selectors { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
         .chord-selectors .input-group { flex: 1; min-width: 200px; }
         .chord-selectors select { padding: 10px; font-size: 1rem; }
+        .chord-notes-display { background: #1f1f1f; padding: 15px; border-radius: 6px; border: 1px dashed #555; text-align: center; font-size: 1.1rem; }
+        .chord-notes-display span.chord-name { color: var(--secondary); font-weight: bold; }
+        .chord-notes-display span.chord-spelling { color: #aaa; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Scale Transposer</h1>
+    <p>Source: <a href="https://en.wikipedia.org/wiki/Mode_(music)#Modern_diatonic_modes">Mode (music), Wikipedia</a></p>
     <div class="row">
         <select id="rootNote" onchange="calculateScale()">
             <option value="0">C</option>
@@ -65,7 +69,8 @@
 
 <div class="container">
     <h1>Chord Relationship Matrix</h1>
-    <p style="font-size: 0.9rem; color: #aaa;">Select a chord, emotion, or spectrum. The other fields will auto-sync to match.</p>
+    <p style="font-size: 0.9rem; color: #aaa;">Select a chord, emotion, or spectrum. Note output adapts to your chosen Transposer Base Note.</p>
+    <p>Source: <a href="https://www.tabletopcomposer.com/post/chord-relationships-and-emotion">Stephen Berkemeier, Tabletop Composer</a></p>
     
     <div class="chord-matrix-container">
         <div class="chord-selectors">
@@ -84,6 +89,9 @@
                 <select id="cr-chord" onchange="syncChordData('chord')"></select>
             </div>
         </div>
+
+        <div id="chordNotesDisplay" class="chord-notes-display">
+            </div>
     </div>
 </div>
 
@@ -97,10 +105,6 @@
     </div>
 
     <h3>1. Master Activators</h3>
-    <p style="font-size: 0.8rem; color: #aaa;">Notes only play if these cycles are "On". Format: On/Total/Offset (e.g., 2/4/0)</p>
-    <p style="font-size: 0.8rem; color: #aaa;">On = Pulse Width = How many consecutive ticks the gate stays "open."</p>
-    <p style="font-size: 0.8rem; color: #aaa;">Total = Cycle Length = The total length of the loop before it repeats.</p>
-    <p style="font-size: 0.8rem; color: #aaa;">Offset = Phase Shift = Shifting the starting point of the loop (Syncopation).</p>
     <div id="masterActivators" class="row">
         <input type="text" id="masterInput" value="2/4/0" placeholder="2/4/0 1/8/2">
         <button onclick="generate()">Apply Master</button>
@@ -117,18 +121,19 @@
 </div>
 
 <script>
-    // --- Scale Logic ---
     const chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    
+    // --- Scale Logic ---
     let intervals = [0, 2, 4, 5, 7, 9, 11];
     function calculateScale() {
         const root = parseInt(document.getElementById('rootNote').value);
         const notes = intervals.map(s => chromatic[(root + s) % 12]);
         document.getElementById('scaleDisplay').innerText = notes.join(" — ");
+        calculateChordNotes(); // Update chords whenever root changes
     }
     function applyPreset(arr) { intervals = arr; calculateScale(); }
 
     // --- Chord Relationship Logic ---
-    // Compiled from the provided reference images
     const crData = [
         { chord: "M III m", emotion: "Sadness", spectrum: "Sad" },
         { chord: "m IV m", emotion: "Tragic", spectrum: "Sad" },
@@ -136,7 +141,6 @@
         { chord: "m V M", emotion: "Bitter Sweet", spectrum: "Sad" },
         { chord: "m vii M", emotion: "Bitter Sweet", spectrum: "Sad" },
         { chord: "M II m", emotion: "Bitter Sweet", spectrum: "Sad" },
-        
         { chord: "m ii m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
         { chord: "m VII m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
         { chord: "m VI M", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
@@ -148,14 +152,12 @@
         { chord: "m III m", emotion: "Ominous and Dark Sounding", spectrum: "Evil Sounding" },
         { chord: "m vi m", emotion: "Ominous and Dark Sounding", spectrum: "Evil Sounding" },
         { chord: "m IV+ m", emotion: "Antagonism and Danger", spectrum: "Evil Sounding" },
-        
         { chord: "m VII M", emotion: "Dramatic", spectrum: "Evil/Neutral Sounding" },
         { chord: "M ii m", emotion: "Dramatic", spectrum: "Evil/Neutral Sounding" },
         { chord: "m II M", emotion: "Mysterious/Dark comedy", spectrum: "Evil/Neutral Sounding" },
         { chord: "M vii m", emotion: "Mysterious/Dark comedy", spectrum: "Evil/Neutral Sounding" },
         { chord: "m IV+ M", emotion: "Outer Space", spectrum: "Evil/Neutral Sounding" },
         { chord: "M IV+ m", emotion: "Outer Space", spectrum: "Evil/Neutral Sounding" },
-        
         { chord: "M ii M", emotion: "Exotic/Cowboy/Enchanted Forest", spectrum: "Neutral Sounding" },
         { chord: "M VII M", emotion: "Exotic/Cowboy/Enchanted Forest", spectrum: "Neutral Sounding" },
         { chord: "M IV+ M", emotion: "Outer Space (Neutral)", spectrum: "Neutral Sounding" },
@@ -165,12 +167,10 @@
         { chord: "m III M", emotion: "Powerful and Mysterious", spectrum: "Neutral Sounding" },
         { chord: "M vi m", emotion: "Powerful and Mysterious", spectrum: "Neutral Sounding" },
         { chord: "m vi M", emotion: "Resolution", spectrum: "Neutral Sounding" },
-        
         { chord: "M IV m", emotion: "Romantic/Exotic", spectrum: "Good/Neutral Sounding" },
         { chord: "M VI m", emotion: "Other worldly/Heavenly", spectrum: "Good/Neutral Sounding" },
         { chord: "m IV M", emotion: "Wonder and Transcendence", spectrum: "Good/Neutral Sounding" },
         { chord: "M V m", emotion: "Wonder and Transcendence", spectrum: "Good/Neutral Sounding" },
-        
         { chord: "M II M", emotion: "Protagonism", spectrum: "Good Sounding" },
         { chord: "M vii M", emotion: "Protagonism", spectrum: "Good Sounding" },
         { chord: "M iii M", emotion: "Heroic", spectrum: "Good Sounding" },
@@ -181,8 +181,13 @@
         { chord: "M V M", emotion: "Good Energy", spectrum: "Good Sounding" }
     ];
 
+    // Semitone mapping from Roman Numerals (Image 1)
+    const intervalMap = {
+        "ii": 1, "II": 2, "iii": 3, "III": 4, "IV": 5, "IV+": 6,
+        "V": 7, "vi": 8, "VI": 9, "vii": 10, "VII": 11
+    };
+
     function initChordMatrix() {
-        // Get unique lists for each dropdown
         const spectrums = [...new Set(crData.map(item => item.spectrum))];
         const emotions = [...new Set(crData.map(item => item.emotion))];
         const chords = [...new Set(crData.map(item => item.chord))];
@@ -196,7 +201,6 @@
         populateSelect('cr-emotion', emotions);
         populateSelect('cr-chord', chords);
         
-        // Trigger initial sync based on first item
         syncChordData('chord');
     }
 
@@ -226,9 +230,56 @@
                 emotionSelect.value = targetEntry.emotion;
             }
         }
+        calculateChordNotes();
     }
 
-    // --- Rhythm Logic ---
+    // --- NEW: Calculate Actual Notes ---
+    function calculateChordNotes() {
+        const rootIndex = parseInt(document.getElementById('rootNote').value);
+        const crString = document.getElementById('cr-chord').value;
+        if (!crString) return;
+
+        // Parse format (e.g. "m III M")
+        const parts = crString.split(' ');
+        if (parts.length !== 3) return;
+
+        const q1 = parts[0];       // 'm' or 'M'
+        const intSym = parts[1];   // 'III', 'ii', 'IV+', etc.
+        const q2 = parts[2];       // 'M' or 'm'
+
+        // Get interval offset from Roman Numeral map
+        const semitones = intervalMap[intSym] || 0;
+
+        // Calculate Root Indexes for both chords
+        const root1Index = rootIndex;
+        const root2Index = (rootIndex + semitones) % 12;
+
+        // Helper to construct a chord
+        const buildChord = (rIdx, quality) => {
+            const thirdOffset = (quality === 'M') ? 4 : 3;
+            const fifthOffset = 7;
+            
+            const rootNote = chromatic[rIdx];
+            const thirdNote = chromatic[(rIdx + thirdOffset) % 12];
+            const fifthNote = chromatic[(rIdx + fifthOffset) % 12];
+            
+            const name = `${rootNote} ${quality === 'M' ? 'Major' : 'minor'}`;
+            const spelling = `${rootNote} - ${thirdNote} - ${fifthNote}`;
+            return { name, spelling };
+        };
+
+        const chord1 = buildChord(root1Index, q1);
+        const chord2 = buildChord(root2Index, q2);
+
+        // Render to UI
+        document.getElementById('chordNotesDisplay').innerHTML = `
+            <span class="chord-name">${chord1.name}</span> <span class="chord-spelling">(${chord1.spelling})</span>
+            <span style="margin: 0 15px; color: white;">➔</span>
+            <span class="chord-name">${chord2.name}</span> <span class="chord-spelling">(${chord2.spelling})</span>
+        `;
+    }
+
+    // --- Rhythm Logic (Unchanged) ---
     let tracks = [{ id: Date.now(), period: 4, offset: 0, activators: "1/1/0" }];
 
     function addTrack() {
@@ -257,7 +308,7 @@
                 <div class="row">
                     <div class="input-group"><label>Period</label><input type="number" value="${t.period}" oninput="updateTrack(${t.id}, 'period', parseInt(this.value))" style="width:50px"></div>
                     <div class="input-group"><label>Offset</label><input type="number" value="${t.offset}" oninput="updateTrack(${t.id}, 'offset', parseInt(this.value))" style="width:50px"></div>
-                    <div class="input-group"><label>Track Activators (On/Total/Offset)</label><input type="text" value="${t.activators}" oninput="updateTrack(${t.id}, 'activators', this.value)" style="width:200px"></div>
+                    <div class="input-group"><label>Track Activators</label><input type="text" value="${t.activators}" oninput="updateTrack(${t.id}, 'activators', this.value)" style="width:200px"></div>
                     <button onclick="removeTrack(${t.id})" style="background:#cf6679">×</button>
                 </div>
             `;
