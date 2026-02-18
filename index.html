@@ -34,13 +34,34 @@
         .chord-notes-display { background: #1f1f1f; padding: 15px; border-radius: 6px; border: 1px dashed #555; text-align: center; font-size: 1.1rem; }
         .chord-notes-display span.chord-name { color: var(--secondary); font-weight: bold; }
         .chord-notes-display span.chord-spelling { color: #aaa; font-size: 0.9rem; }
+
+        /* Styles for Source Attributions */
+        .source-attribution {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: -10px; /* Pulls it slightly closer to the header */
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+        
+        .source-attribution a {
+            color: var(--secondary);
+            text-decoration: none;
+            transition: color 0.2s ease, text-shadow 0.2s ease;
+        }
+        
+        .source-attribution a:hover {
+            color: var(--accent);
+            text-shadow: 0 0 8px rgba(187, 134, 252, 0.4);
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Scale Transposer</h1>
-    <p>Source: <a href="https://en.wikipedia.org/wiki/Mode_(music)#Modern_diatonic_modes">Mode (music), Wikipedia</a></p>
+    <p class="source-attribution">Source: <a href="https://en.wikipedia.org/wiki/Mode_(music)#Modern_diatonic_modes">Mode (music), Wikipedia</a></p>
     <div class="row">
         <select id="rootNote" onchange="calculateScale()">
             <option value="0">C</option>
@@ -70,7 +91,7 @@
 <div class="container">
     <h1>Chord Relationship Matrix</h1>
     <p style="font-size: 0.9rem; color: #aaa;">Select a chord, emotion, or spectrum. Note output adapts to your chosen Transposer Base Note.</p>
-    <p>Source: <a href="https://www.tabletopcomposer.com/post/chord-relationships-and-emotion">Stephen Berkemeier, Tabletop Composer</a></p>
+    <p class="source-attribution">Source: <a href="https://www.tabletopcomposer.com/post/chord-relationships-and-emotion">Stephen Berkemeier, Tabletop Composer</a></p>
     
     <div class="chord-matrix-container">
         <div class="chord-selectors">
