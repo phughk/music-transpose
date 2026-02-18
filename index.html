@@ -39,7 +39,7 @@
         .source-attribution {
             font-size: 0.85rem;
             color: #888;
-            margin-top: -10px; /* Pulls it slightly closer to the header */
+            margin-top: -10px; 
             margin-bottom: 20px;
             font-style: italic;
         }
@@ -61,7 +61,7 @@
 
 <div class="container">
     <h1>Scale Transposer</h1>
-    <p class="source-attribution">Source: <a href="https://en.wikipedia.org/wiki/Mode_(music)#Modern_diatonic_modes">Mode (music), Wikipedia</a></p>
+    <p class="source-attribution">Source: <a href="https://en.wikipedia.org/wiki/Mode_(music)#Modern_diatonic_modes" target="_blank">Mode (music), Wikipedia</a></p>
     <div class="row">
         <select id="rootNote" onchange="calculateScale()">
             <option value="0">C</option>
@@ -77,21 +77,21 @@
             <option value="10">A#</option>
             <option value="11">B</option>
         </select>
-        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 5, 7, 9, 11])">Ionian (Major)</button>
-        <button class="preset-btn" onclick="applyPreset([0, 2, 3, 5, 7, 9, 10])">Dorian</button>
-        <button class="preset-btn" onclick="applyPreset([0, 1, 3, 5, 7, 8, 10])">Phrygian</button>
-        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 6, 7, 9, 11])">Lydian</button>
-        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 5, 7, 9, 10])">Mixolydian</button>
-        <button class="preset-btn" onclick="applyPreset([0, 2, 3, 5, 7, 8, 10])">Aeolian (Minor)</button>
-        <button class="preset-btn" onclick="applyPreset([0, 1, 3, 5, 6, 8, 10])">Locrian</button>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 5, 7, 9, 11], 'Ionian (Major)')">Ionian (Major)</button>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 3, 5, 7, 9, 10], 'Dorian')">Dorian</button>
+        <button class="preset-btn" onclick="applyPreset([0, 1, 3, 5, 7, 8, 10], 'Phrygian')">Phrygian</button>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 6, 7, 9, 11], 'Lydian')">Lydian</button>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 5, 7, 9, 10], 'Mixolydian')">Mixolydian</button>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 3, 5, 7, 8, 10], 'Aeolian (Minor)')">Aeolian (Minor)</button>
+        <button class="preset-btn" onclick="applyPreset([0, 1, 3, 5, 6, 8, 10], 'Locrian')">Locrian</button>
     </div>
     <div id="scaleDisplay" style="background:#121212; padding:15px; border-radius:8px; font-size: 1.2rem; text-align: center; letter-spacing: 2px;"></div>
 </div>
 
 <div class="container">
     <h1>Chord Relationship Matrix</h1>
-    <p style="font-size: 0.9rem; color: #aaa;">Select a chord, emotion, or spectrum. Note output adapts to your chosen Transposer Base Note.</p>
-    <p class="source-attribution">Source: <a href="https://www.tabletopcomposer.com/post/chord-relationships-and-emotion">Stephen Berkemeier, Tabletop Composer</a></p>
+    <p style="font-size: 0.9rem; color: #aaa;">Select a chord, emotion, or spectrum. The Scale Transposer will automatically update to show the transition.</p>
+    <p class="source-attribution">Source: <a href="https://www.tabletopcomposer.com/post/chord-relationships-and-emotion" target="_blank">Stephen Berkemeier, Tabletop Composer</a></p>
     
     <div class="chord-matrix-container">
         <div class="chord-selectors">
@@ -145,14 +145,49 @@
     const chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     
     // --- Scale Logic ---
-    let intervals = [0, 2, 4, 5, 7, 9, 11];
+    let intervals = [0, 2, 4, 5, 7, 9, 11]; // Default to Ionian
+    let currentModeName = "Ionian (Major)"; 
+
     function calculateScale() {
-        const root = parseInt(document.getElementById('rootNote').value);
-        const notes = intervals.map(s => chromatic[(root + s) % 12]);
-        document.getElementById('scaleDisplay').innerText = notes.join(" — ");
-        calculateChordNotes(); // Update chords whenever root changes
+        const root1Index = parseInt(document.getElementById('rootNote').value);
+        const notes1 = intervals.map(s => chromatic[(root1Index + s) % 12]);
+        const primaryRootName = chromatic[root1Index];
+        
+        let displayHtml = `<div style="color: var(--secondary); font-weight:bold;">${primaryRootName} ${currentModeName}: ${notes1.join(" — ")}</div>`;
+
+        // Calculate Scale 2 based on Chord Matrix
+        const crString = document.getElementById('cr-chord').value;
+        if (crString) {
+            const parts = crString.split(' ');
+            if (parts.length === 3) {
+                const intSym = parts[1];
+                const q2 = parts[2];
+                const semitones = intervalMap[intSym] || 0;
+                
+                // Calculate New Root
+                const root2Index = (root1Index + semitones) % 12;
+                
+                // Determine new scale intervals (M = Ionian, m = Aeolian)
+                const intervals2 = (q2 === 'M') ? [0, 2, 4, 5, 7, 9, 11] : [0, 2, 3, 5, 7, 8, 10];
+                const notes2 = intervals2.map(s => chromatic[(root2Index + s) % 12]);
+                const scale2Name = `${chromatic[root2Index]} ${q2 === 'M' ? 'Major' : 'Minor'}`;
+                
+                displayHtml += `
+                    <div style="margin: 8px 0; color: #888; font-size: 0.9rem;">↓ Translates to ↓</div>
+                    <div style="color: var(--accent); font-weight:bold;">${scale2Name}: ${notes2.join(" — ")}</div>
+                `;
+            }
+        }
+
+        document.getElementById('scaleDisplay').innerHTML = displayHtml;
+        calculateChordNotes(); // Ensure chords always match the current root
     }
-    function applyPreset(arr) { intervals = arr; calculateScale(); }
+
+    function applyPreset(arr, modeName) { 
+        intervals = arr; 
+        currentModeName = modeName;
+        calculateScale(); 
+    }
 
     // --- Chord Relationship Logic ---
     const crData = [
@@ -202,7 +237,7 @@
         { chord: "M V M", emotion: "Good Energy", spectrum: "Good Sounding" }
     ];
 
-    // Semitone mapping from Roman Numerals (Image 1)
+    // Semitone mapping from Roman Numerals
     const intervalMap = {
         "ii": 1, "II": 2, "iii": 3, "III": 4, "IV": 5, "IV+": 6,
         "V": 7, "vi": 8, "VI": 9, "vii": 10, "VII": 11
@@ -222,6 +257,7 @@
         populateSelect('cr-emotion', emotions);
         populateSelect('cr-chord', chords);
         
+        // This will sync the dropdowns AND trigger calculateScale()
         syncChordData('chord');
     }
 
@@ -251,16 +287,16 @@
                 emotionSelect.value = targetEntry.emotion;
             }
         }
-        calculateChordNotes();
+        
+        // Force the Scale Transposer to update its secondary scale
+        calculateScale();
     }
 
-    // --- NEW: Calculate Actual Notes ---
     function calculateChordNotes() {
         const rootIndex = parseInt(document.getElementById('rootNote').value);
         const crString = document.getElementById('cr-chord').value;
         if (!crString) return;
 
-        // Parse format (e.g. "m III M")
         const parts = crString.split(' ');
         if (parts.length !== 3) return;
 
@@ -268,14 +304,10 @@
         const intSym = parts[1];   // 'III', 'ii', 'IV+', etc.
         const q2 = parts[2];       // 'M' or 'm'
 
-        // Get interval offset from Roman Numeral map
         const semitones = intervalMap[intSym] || 0;
-
-        // Calculate Root Indexes for both chords
         const root1Index = rootIndex;
         const root2Index = (rootIndex + semitones) % 12;
 
-        // Helper to construct a chord
         const buildChord = (rIdx, quality) => {
             const thirdOffset = (quality === 'M') ? 4 : 3;
             const fifthOffset = 7;
@@ -292,7 +324,6 @@
         const chord1 = buildChord(root1Index, q1);
         const chord2 = buildChord(root2Index, q2);
 
-        // Render to UI
         document.getElementById('chordNotesDisplay').innerHTML = `
             <span class="chord-name">${chord1.name}</span> <span class="chord-spelling">(${chord1.spelling})</span>
             <span style="margin: 0 15px; color: white;">➔</span>
@@ -379,7 +410,6 @@
     }
 
     // Init
-    calculateScale();
     initChordMatrix();
     renderTracks();
 </script>
