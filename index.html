@@ -19,12 +19,6 @@
         .preset-btn:hover { background: #555; }
         
         .track-card { background: #1f1f1f; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--secondary); }
-        .rhythm-visualizer { display: flex; gap: 3px; margin-top: 15px; flex-wrap: wrap; background: #000; padding: 10px; border-radius: 4px; }
-        .beat-cell { width: 22px; height: 22px; border-radius: 2px; font-size: 0.6rem; display: flex; align-items: center; justify-content: center; }
-        .on { background: var(--secondary); color: black; box-shadow: 0 0 5px var(--secondary); }
-        .off { background: #333; color: #666; }
-        .master-off { border: 1px solid #cf6679; opacity: 0.3; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; }
         
         /* Styles for Chord Matrix */
         .chord-matrix-container { background: #121212; padding: 20px; border-radius: 8px; margin-top: 10px; border-left: 4px solid #bb86fc; }
@@ -36,25 +30,25 @@
         .chord-notes-display span.chord-spelling { color: #aaa; font-size: 0.9rem; }
 
         /* Styles for Source Attributions */
-        .source-attribution {
-            font-size: 0.85rem;
-            color: #888;
-            margin-top: -10px; 
-            margin-bottom: 20px;
-            font-style: italic;
-        }
-        
-        .source-attribution a {
-            color: var(--secondary);
-            text-decoration: none;
-            transition: color 0.2s ease, text-shadow 0.2s ease;
-        }
-        
-        .source-attribution a:hover {
-            color: var(--accent);
-            text-shadow: 0 0 8px rgba(187, 134, 252, 0.4);
-            text-decoration: underline;
-        }
+        .source-attribution { font-size: 0.85rem; color: #888; margin-top: -10px; margin-bottom: 20px; font-style: italic; }
+        .source-attribution a { color: var(--secondary); text-decoration: none; transition: color 0.2s ease, text-shadow 0.2s ease; }
+        .source-attribution a:hover { color: var(--accent); text-shadow: 0 0 8px rgba(187, 134, 252, 0.4); text-decoration: underline; }
+
+        /* Step Sequencer Styles */
+        .sequencer-grid { display: flex; flex-direction: column; gap: 4px; margin-top: 15px; overflow-x: auto; padding: 10px; background: #000; border-radius: 8px; }
+        .seq-row { display: flex; gap: 4px; align-items: center; }
+        .seq-label { width: 45px; font-size: 0.8rem; font-weight: bold; color: var(--secondary); text-align: right; padding-right: 8px; flex-shrink: 0; }
+        .seq-cell { width: 22px; height: 22px; border-radius: 2px; background: #222; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #555; flex-shrink: 0; }
+        .seq-cell.on { background: var(--secondary); color: black; box-shadow: 0 0 8px var(--secondary); }
+        .seq-cell.master-off { border: 1px solid #cf6679; background: transparent; opacity: 0.2; color: transparent; }
+        .tick-ruler { display: flex; gap: 4px; margin-left: 53px; margin-bottom: 5px; }
+        .tick-label { width: 22px; text-align: center; font-size: 0.6rem; color: #777; flex-shrink: 0; }
+
+        /* NEW: Instructions Panel Styles */
+        .instructions { background: #222; border-left: 4px solid var(--accent); padding: 15px; margin-bottom: 25px; border-radius: 4px; font-size: 0.9rem; line-height: 1.6; }
+        .instructions ul { margin-top: 8px; margin-bottom: 0; padding-left: 20px; }
+        .instructions li { margin-bottom: 6px; }
+        .instructions code { background: #000; padding: 2px 6px; border-radius: 3px; color: var(--secondary); font-family: monospace; font-size: 0.95rem; }
     </style>
 </head>
 <body>
@@ -112,17 +106,27 @@
         </div>
 
         <div id="chordNotesDisplay" class="chord-notes-display">
-            </div>
+        </div>
     </div>
 </div>
 
 <div class="container">
     <div class="header-row">
-        <h1>Composite Rhythm Generator</h1>
+        <h1>Composite Rhythm Sequencer</h1>
         <div class="input-group">
             <label>Global Resolution (Ticks)</label>
             <input type="number" id="globalRes" value="32" style="width: 60px;" oninput="generate()">
         </div>
+    </div>
+
+    <div class="instructions">
+        <strong>How it works:</strong> This sequencer builds complex, syncopated patterns by layering simple, repeating rules. 
+        <ul>
+            <li><strong>Scale Degree:</strong> Chooses which note from your active scale (1st through 7th) the track will trigger.</li>
+            <li><strong>Period & Offset:</strong> A track with a Period of <code>4</code> and an Offset of <code>0</code> will pulse on ticks 0, 4, 8, 12. Changing the Offset to <code>1</code> shifts it to ticks 1, 5, 9, 13.</li>
+            <li><strong>Activators (On/Total/Offset):</strong> These act as rhythmic "gates." For example, <code>2/4/0</code> means the gate is open for 2 ticks, then closed for 2 ticks in a 4-tick loop. A note will only play if its Period pulse aligns with an open gate.</li>
+            <li><strong>Master vs. Track:</strong> Track Activators only filter their specific row. Master Activators act as a global mute—if the master gate is closed, the entire grid is muted for that tick (shown as dim columns).</li>
+        </ul>
     </div>
 
     <h3>1. Master Activators</h3>
@@ -137,8 +141,8 @@
     </div>
     <div id="tracksContainer"></div>
 
-    <h3>Output Visualizer</h3>
-    <div id="rhythmOutput" class="rhythm-visualizer"></div>
+    <h3>Step Sequencer Output</h3>
+    <div id="rhythmOutput" class="sequencer-grid"></div>
 </div>
 
 <script>
@@ -147,15 +151,15 @@
     // --- Scale Logic ---
     let intervals = [0, 2, 4, 5, 7, 9, 11]; // Default to Ionian
     let currentModeName = "Ionian (Major)"; 
+    let currentScaleNotes = []; 
 
     function calculateScale() {
         const root1Index = parseInt(document.getElementById('rootNote').value);
-        const notes1 = intervals.map(s => chromatic[(root1Index + s) % 12]);
+        currentScaleNotes = intervals.map(s => chromatic[(root1Index + s) % 12]);
         const primaryRootName = chromatic[root1Index];
         
-        let displayHtml = `<div style="color: var(--secondary); font-weight:bold;">${primaryRootName} ${currentModeName}: ${notes1.join(" — ")}</div>`;
+        let displayHtml = `<div style="color: var(--secondary); font-weight:bold;">${primaryRootName} ${currentModeName}: ${currentScaleNotes.join(" — ")}</div>`;
 
-        // Calculate Scale 2 based on Chord Matrix
         const crString = document.getElementById('cr-chord').value;
         if (crString) {
             const parts = crString.split(' ');
@@ -164,10 +168,7 @@
                 const q2 = parts[2];
                 const semitones = intervalMap[intSym] || 0;
                 
-                // Calculate New Root
                 const root2Index = (root1Index + semitones) % 12;
-                
-                // Determine new scale intervals (M = Ionian, m = Aeolian)
                 const intervals2 = (q2 === 'M') ? [0, 2, 4, 5, 7, 9, 11] : [0, 2, 3, 5, 7, 8, 10];
                 const notes2 = intervals2.map(s => chromatic[(root2Index + s) % 12]);
                 const scale2Name = `${chromatic[root2Index]} ${q2 === 'M' ? 'Major' : 'Minor'}`;
@@ -180,7 +181,8 @@
         }
 
         document.getElementById('scaleDisplay').innerHTML = displayHtml;
-        calculateChordNotes(); // Ensure chords always match the current root
+        calculateChordNotes(); 
+        generate(); 
     }
 
     function applyPreset(arr, modeName) { 
@@ -237,7 +239,6 @@
         { chord: "M V M", emotion: "Good Energy", spectrum: "Good Sounding" }
     ];
 
-    // Semitone mapping from Roman Numerals
     const intervalMap = {
         "ii": 1, "II": 2, "iii": 3, "III": 4, "IV": 5, "IV+": 6,
         "V": 7, "vi": 8, "VI": 9, "vii": 10, "VII": 11
@@ -257,7 +258,6 @@
         populateSelect('cr-emotion', emotions);
         populateSelect('cr-chord', chords);
         
-        // This will sync the dropdowns AND trigger calculateScale()
         syncChordData('chord');
     }
 
@@ -287,8 +287,6 @@
                 emotionSelect.value = targetEntry.emotion;
             }
         }
-        
-        // Force the Scale Transposer to update its secondary scale
         calculateScale();
     }
 
@@ -300,9 +298,9 @@
         const parts = crString.split(' ');
         if (parts.length !== 3) return;
 
-        const q1 = parts[0];       // 'm' or 'M'
-        const intSym = parts[1];   // 'III', 'ii', 'IV+', etc.
-        const q2 = parts[2];       // 'M' or 'm'
+        const q1 = parts[0];       
+        const intSym = parts[1];   
+        const q2 = parts[2];       
 
         const semitones = intervalMap[intSym] || 0;
         const root1Index = rootIndex;
@@ -331,11 +329,11 @@
         `;
     }
 
-    // --- Rhythm Logic (Unchanged) ---
-    let tracks = [{ id: Date.now(), period: 4, offset: 0, activators: "1/1/0" }];
+    // --- Rhythm Logic with Scale Degrees ---
+    let tracks = [{ id: Date.now(), period: 4, offset: 0, activators: "1/1/0", degree: 1 }];
 
     function addTrack() {
-        tracks.push({ id: Date.now(), period: 1, offset: 0, activators: "1/1/0" });
+        tracks.push({ id: Date.now(), period: 1, offset: 0, activators: "1/1/0", degree: 1 });
         renderTracks();
     }
 
@@ -358,6 +356,18 @@
             div.className = 'track-card';
             div.innerHTML = `
                 <div class="row">
+                    <div class="input-group">
+                        <label>Scale Degree</label>
+                        <select onchange="updateTrack(${t.id}, 'degree', parseInt(this.value))" style="width:100px; color: var(--accent);">
+                            <option value="1" ${t.degree === 1 ? 'selected' : ''}>1 (Root)</option>
+                            <option value="2" ${t.degree === 2 ? 'selected' : ''}>2nd</option>
+                            <option value="3" ${t.degree === 3 ? 'selected' : ''}>3rd</option>
+                            <option value="4" ${t.degree === 4 ? 'selected' : ''}>4th</option>
+                            <option value="5" ${t.degree === 5 ? 'selected' : ''}>5th</option>
+                            <option value="6" ${t.degree === 6 ? 'selected' : ''}>6th</option>
+                            <option value="7" ${t.degree === 7 ? 'selected' : ''}>7th</option>
+                        </select>
+                    </div>
                     <div class="input-group"><label>Period</label><input type="number" value="${t.period}" oninput="updateTrack(${t.id}, 'period', parseInt(this.value))" style="width:50px"></div>
                     <div class="input-group"><label>Offset</label><input type="number" value="${t.offset}" oninput="updateTrack(${t.id}, 'offset', parseInt(this.value))" style="width:50px"></div>
                     <div class="input-group"><label>Track Activators</label><input type="text" value="${t.activators}" oninput="updateTrack(${t.id}, 'activators', this.value)" style="width:200px"></div>
@@ -387,26 +397,44 @@
         const res = parseInt(document.getElementById('globalRes').value);
         const masterStr = document.getElementById('masterInput').value;
         const output = document.getElementById('rhythmOutput');
-        output.innerHTML = '';
-
-        for (let i = 0; i < res; i++) {
-            const isMasterOn = checkActivator(i, masterStr);
-            let isNoteTriggered = false;
-
-            tracks.forEach(t => {
-                if ((i - t.offset) % t.period === 0 && i >= t.offset) {
-                    if (checkActivator(i, t.activators)) {
-                        isNoteTriggered = true;
-                    }
-                }
-            });
-
-            const active = isMasterOn && isNoteTriggered;
-            const cell = document.createElement('div');
-            cell.className = `beat-cell ${active ? 'on' : 'off'} ${!isMasterOn ? 'master-off' : ''}`;
-            cell.innerText = i;
-            output.appendChild(cell);
+        
+        let html = '<div class="tick-ruler">';
+        for(let i=0; i<res; i++) {
+            html += `<div class="tick-label">${i}</div>`;
         }
+        html += '</div>';
+
+        for (let degree = 7; degree >= 1; degree--) {
+            const noteName = currentScaleNotes[degree - 1] || "?"; 
+            
+            html += `<div class="seq-row">
+                        <div class="seq-label" title="Degree ${degree}">${noteName}</div>`;
+            
+            for (let i = 0; i < res; i++) {
+                const isMasterOn = checkActivator(i, masterStr);
+                let isNoteTriggered = false;
+
+                tracks.forEach(t => {
+                    if (t.degree === degree) {
+                        if ((i - t.offset) % t.period === 0 && i >= t.offset) {
+                            if (checkActivator(i, t.activators)) {
+                                isNoteTriggered = true;
+                            }
+                        }
+                    }
+                });
+
+                const active = isMasterOn && isNoteTriggered;
+                let cellClass = 'seq-cell';
+                if (!isMasterOn) cellClass += ' master-off';
+                else if (active) cellClass += ' on';
+
+                html += `<div class="${cellClass}">${active ? '♪' : ''}</div>`;
+            }
+            html += `</div>`;
+        }
+        
+        output.innerHTML = html;
     }
 
     // Init
