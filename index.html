@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Theory Tool - Composite Rhythms</title>
+    <title>Theory Tool - Composite Rhythms & Chords</title>
     <style>
         :root {
             --bg: #1a1a1a; --card: #2d2d2d; --text: #e0e0e0;
@@ -15,6 +15,9 @@
         .input-group { display: flex; flex-direction: column; gap: 5px; }
         input, select, textarea { background: #3d3d3d; border: 1px solid #555; color: white; padding: 6px; border-radius: 4px; }
         button { background: var(--accent); color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .preset-btn { background: #333; color: white; border: 1px solid #555; }
+        .preset-btn:hover { background: #555; }
+        
         .track-card { background: #1f1f1f; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--secondary); }
         .rhythm-visualizer { display: flex; gap: 3px; margin-top: 15px; flex-wrap: wrap; background: #000; padding: 10px; border-radius: 4px; }
         .beat-cell { width: 22px; height: 22px; border-radius: 2px; font-size: 0.6rem; display: flex; align-items: center; justify-content: center; }
@@ -22,6 +25,12 @@
         .off { background: #333; color: #666; }
         .master-off { border: 1px solid #cf6679; opacity: 0.3; }
         .header-row { display: flex; justify-content: space-between; align-items: center; }
+        
+        /* New styles for Chord Matrix */
+        .chord-matrix-container { background: #121212; padding: 20px; border-radius: 8px; margin-top: 10px; border-left: 4px solid #bb86fc; }
+        .chord-selectors { display: flex; gap: 15px; flex-wrap: wrap; }
+        .chord-selectors .input-group { flex: 1; min-width: 200px; }
+        .chord-selectors select { padding: 10px; font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -30,28 +39,52 @@
     <h1>Scale Transposer</h1>
     <div class="row">
         <select id="rootNote" onchange="calculateScale()">
-	    <option value="0">C</option>
-	    <option value="1">C#</option>
-	    <option value="2">D</option>
-	    <option value="3">D#</option>
-	    <option value="4">E</option>
-	    <option value="5">F</option>
-	    <option value="6">F#</option>
-	    <option value="7">G</option>
-	    <option value="8">G#</option>
-	    <option value="9">A</option>
-	    <option value="10">A#</option>
-	    <option value="11">B</option>
-	</select>
-	<button onclick="applyPreset([0, 2, 4, 5, 7, 9, 11])">Ionian (Major)</button>
-        <button onclick="applyPreset([0, 2, 3, 5, 7, 9, 10])">Dorian</button>
-        <button onclick="applyPreset([0, 1, 3, 5, 7, 8, 10])">Phrygian</button>
-        <button onclick="applyPreset([0, 2, 4, 6, 7, 9, 11])">Lydian</button>
-        <button onclick="applyPreset([0, 2, 4, 5, 7, 9, 10])">Mixolydian</button>
-        <button onclick="applyPreset([0, 2, 3, 5, 7, 8, 10])">Aeolian (Minor)</button>
-        <button onclick="applyPreset([0, 1, 3, 5, 6, 8, 10])">Locrian</button>
+            <option value="0">C</option>
+            <option value="1">C#</option>
+            <option value="2">D</option>
+            <option value="3">D#</option>
+            <option value="4">E</option>
+            <option value="5">F</option>
+            <option value="6">F#</option>
+            <option value="7">G</option>
+            <option value="8">G#</option>
+            <option value="9">A</option>
+            <option value="10">A#</option>
+            <option value="11">B</option>
+        </select>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 5, 7, 9, 11])">Ionian (Major)</button>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 3, 5, 7, 9, 10])">Dorian</button>
+        <button class="preset-btn" onclick="applyPreset([0, 1, 3, 5, 7, 8, 10])">Phrygian</button>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 6, 7, 9, 11])">Lydian</button>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 4, 5, 7, 9, 10])">Mixolydian</button>
+        <button class="preset-btn" onclick="applyPreset([0, 2, 3, 5, 7, 8, 10])">Aeolian (Minor)</button>
+        <button class="preset-btn" onclick="applyPreset([0, 1, 3, 5, 6, 8, 10])">Locrian</button>
     </div>
-    <div id="scaleDisplay" style="background:#121212; padding:15px; border-radius:8px;"></div>
+    <div id="scaleDisplay" style="background:#121212; padding:15px; border-radius:8px; font-size: 1.2rem; text-align: center; letter-spacing: 2px;"></div>
+</div>
+
+<div class="container">
+    <h1>Chord Relationship Matrix</h1>
+    <p style="font-size: 0.9rem; color: #aaa;">Select a chord, emotion, or spectrum. The other fields will auto-sync to match.</p>
+    
+    <div class="chord-matrix-container">
+        <div class="chord-selectors">
+            <div class="input-group">
+                <label style="color: var(--accent); font-weight: bold;">Spectrum</label>
+                <select id="cr-spectrum" onchange="syncChordData('spectrum')"></select>
+            </div>
+            
+            <div class="input-group">
+                <label style="color: var(--secondary); font-weight: bold;">Emotion</label>
+                <select id="cr-emotion" onchange="syncChordData('emotion')"></select>
+            </div>
+
+            <div class="input-group">
+                <label style="color: white; font-weight: bold;">Chord Relationship</label>
+                <select id="cr-chord" onchange="syncChordData('chord')"></select>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="container">
@@ -75,7 +108,7 @@
 
     <div class="header-row">
         <h3>2. Beat Tracks</h3>
-        <button onclick="addTrack()" class="preset-btn">+ Add Track</button>
+        <button onclick="addTrack()" style="background: var(--secondary); color: black;">+ Add Track</button>
     </div>
     <div id="tracksContainer"></div>
 
@@ -84,9 +117,8 @@
 </div>
 
 <script>
-    // --- Scale Logic (Simplified for brevity) ---
+    // --- Scale Logic ---
     const chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    // Default to C Major
     let intervals = [0, 2, 4, 5, 7, 9, 11];
     function calculateScale() {
         const root = parseInt(document.getElementById('rootNote').value);
@@ -94,6 +126,107 @@
         document.getElementById('scaleDisplay').innerText = notes.join(" — ");
     }
     function applyPreset(arr) { intervals = arr; calculateScale(); }
+
+    // --- Chord Relationship Logic ---
+    // Compiled from the provided reference images
+    const crData = [
+        { chord: "M III m", emotion: "Sadness", spectrum: "Sad" },
+        { chord: "m IV m", emotion: "Tragic", spectrum: "Sad" },
+        { chord: "m V m", emotion: "Tragic", spectrum: "Sad" },
+        { chord: "m V M", emotion: "Bitter Sweet", spectrum: "Sad" },
+        { chord: "m vii M", emotion: "Bitter Sweet", spectrum: "Sad" },
+        { chord: "M II m", emotion: "Bitter Sweet", spectrum: "Sad" },
+        
+        { chord: "m ii m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
+        { chord: "m VII m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
+        { chord: "m VI M", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
+        { chord: "M iii m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
+        { chord: "m II m", emotion: "A Little Uneasy", spectrum: "Evil Sounding" },
+        { chord: "m vii m", emotion: "A Little Uneasy", spectrum: "Evil Sounding" },
+        { chord: "m iii m", emotion: "Otherworldly and Ominous", spectrum: "Evil Sounding" },
+        { chord: "m VI m", emotion: "Otherworldly and Ominous", spectrum: "Evil Sounding" },
+        { chord: "m III m", emotion: "Ominous and Dark Sounding", spectrum: "Evil Sounding" },
+        { chord: "m vi m", emotion: "Ominous and Dark Sounding", spectrum: "Evil Sounding" },
+        { chord: "m IV+ m", emotion: "Antagonism and Danger", spectrum: "Evil Sounding" },
+        
+        { chord: "m VII M", emotion: "Dramatic", spectrum: "Evil/Neutral Sounding" },
+        { chord: "M ii m", emotion: "Dramatic", spectrum: "Evil/Neutral Sounding" },
+        { chord: "m II M", emotion: "Mysterious/Dark comedy", spectrum: "Evil/Neutral Sounding" },
+        { chord: "M vii m", emotion: "Mysterious/Dark comedy", spectrum: "Evil/Neutral Sounding" },
+        { chord: "m IV+ M", emotion: "Outer Space", spectrum: "Evil/Neutral Sounding" },
+        { chord: "M IV+ m", emotion: "Outer Space", spectrum: "Evil/Neutral Sounding" },
+        
+        { chord: "M ii M", emotion: "Exotic/Cowboy/Enchanted Forest", spectrum: "Neutral Sounding" },
+        { chord: "M VII M", emotion: "Exotic/Cowboy/Enchanted Forest", spectrum: "Neutral Sounding" },
+        { chord: "M IV+ M", emotion: "Outer Space (Neutral)", spectrum: "Neutral Sounding" },
+        { chord: "M VII m", emotion: "Cautious but Optimistic", spectrum: "Neutral Sounding" },
+        { chord: "m ii M", emotion: "Cautious but Optimistic", spectrum: "Neutral Sounding" },
+        { chord: "m iii M", emotion: "Rising Action/Tension", spectrum: "Neutral Sounding" },
+        { chord: "m III M", emotion: "Powerful and Mysterious", spectrum: "Neutral Sounding" },
+        { chord: "M vi m", emotion: "Powerful and Mysterious", spectrum: "Neutral Sounding" },
+        { chord: "m vi M", emotion: "Resolution", spectrum: "Neutral Sounding" },
+        
+        { chord: "M IV m", emotion: "Romantic/Exotic", spectrum: "Good/Neutral Sounding" },
+        { chord: "M VI m", emotion: "Other worldly/Heavenly", spectrum: "Good/Neutral Sounding" },
+        { chord: "m IV M", emotion: "Wonder and Transcendence", spectrum: "Good/Neutral Sounding" },
+        { chord: "M V m", emotion: "Wonder and Transcendence", spectrum: "Good/Neutral Sounding" },
+        
+        { chord: "M II M", emotion: "Protagonism", spectrum: "Good Sounding" },
+        { chord: "M vii M", emotion: "Protagonism", spectrum: "Good Sounding" },
+        { chord: "M iii M", emotion: "Heroic", spectrum: "Good Sounding" },
+        { chord: "M VI M", emotion: "Heroic", spectrum: "Good Sounding" },
+        { chord: "M III M", emotion: "Fantastical", spectrum: "Good Sounding" },
+        { chord: "M vi M", emotion: "Fantastical", spectrum: "Good Sounding" },
+        { chord: "M IV M", emotion: "Good Energy", spectrum: "Good Sounding" },
+        { chord: "M V M", emotion: "Good Energy", spectrum: "Good Sounding" }
+    ];
+
+    function initChordMatrix() {
+        // Get unique lists for each dropdown
+        const spectrums = [...new Set(crData.map(item => item.spectrum))];
+        const emotions = [...new Set(crData.map(item => item.emotion))];
+        const chords = [...new Set(crData.map(item => item.chord))];
+
+        const populateSelect = (id, arr) => {
+            const select = document.getElementById(id);
+            select.innerHTML = arr.map(val => `<option value="${val}">${val}</option>`).join('');
+        };
+
+        populateSelect('cr-spectrum', spectrums);
+        populateSelect('cr-emotion', emotions);
+        populateSelect('cr-chord', chords);
+        
+        // Trigger initial sync based on first item
+        syncChordData('chord');
+    }
+
+    function syncChordData(sourceField) {
+        const spectrumSelect = document.getElementById('cr-spectrum');
+        const emotionSelect = document.getElementById('cr-emotion');
+        const chordSelect = document.getElementById('cr-chord');
+
+        let targetEntry;
+
+        if (sourceField === 'chord') {
+            targetEntry = crData.find(item => item.chord === chordSelect.value);
+            if (targetEntry) {
+                emotionSelect.value = targetEntry.emotion;
+                spectrumSelect.value = targetEntry.spectrum;
+            }
+        } else if (sourceField === 'emotion') {
+            targetEntry = crData.find(item => item.emotion === emotionSelect.value);
+            if (targetEntry) {
+                chordSelect.value = targetEntry.chord;
+                spectrumSelect.value = targetEntry.spectrum;
+            }
+        } else if (sourceField === 'spectrum') {
+            targetEntry = crData.find(item => item.spectrum === spectrumSelect.value);
+            if (targetEntry) {
+                chordSelect.value = targetEntry.chord;
+                emotionSelect.value = targetEntry.emotion;
+            }
+        }
+    }
 
     // --- Rhythm Logic ---
     let tracks = [{ id: Date.now(), period: 4, offset: 0, activators: "1/1/0" }];
@@ -137,8 +270,12 @@
         if (!str.trim()) return true;
         const cycles = str.trim().split(/\s+/);
         return cycles.every(c => {
-            const [on, total, offset] = c.split('/').map(Number);
-            const pos = (tick + (offset || 0)) % total;
+            const parts = c.split('/');
+            if(parts.length < 2) return true;
+            const on = Number(parts[0]);
+            const total = Number(parts[1]);
+            const offset = Number(parts[2]) || 0;
+            const pos = (tick + offset) % total;
             return pos < on;
         });
     }
@@ -154,9 +291,7 @@
             let isNoteTriggered = false;
 
             tracks.forEach(t => {
-                // Check if tick hits the period pulse
                 if ((i - t.offset) % t.period === 0 && i >= t.offset) {
-                    // Check if track's internal activators allow it
                     if (checkActivator(i, t.activators)) {
                         isNoteTriggered = true;
                     }
@@ -173,6 +308,7 @@
 
     // Init
     calculateScale();
+    initChordMatrix();
     renderTracks();
 </script>
 </body>
