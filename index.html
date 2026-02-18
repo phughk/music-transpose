@@ -53,9 +53,12 @@
         .instructions { background: #222; border-left: 4px solid var(--accent); padding: 15px; margin-bottom: 25px; border-radius: 4px; font-size: 0.9rem; line-height: 1.6; }
         .instructions ul { margin-top: 8px; margin-bottom: 0; padding-left: 20px; }
         .instructions li { margin-bottom: 6px; }
-        .instructions code { background: #000; padding: 2px 6px; border-radius: 3px; color: var(--secondary); font-family: monospace; font-size: 0.95rem; }
-        
+
         .play-controls { display: flex; gap: 15px; align-items: flex-end; background: #1f1f1f; padding: 10px 20px; border-radius: 8px; border: 1px solid #444; }
+        
+        /* Specific input sizing */
+        .num-sm { width: 50px; text-align: center; }
+        .num-md { width: 60px; text-align: center; }
     </style>
 </head>
 <body>
@@ -129,30 +132,28 @@
     </div>
 
     <div class="instructions">
-        <strong>How it works:</strong> This sequencer builds complex, syncopated patterns by layering simple, repeating rules. 
+        <strong>How it works:</strong> This sequencer builds complex patterns by layering simple, repeating rules. 
         <ul>
             <li><strong>Scale Degree:</strong> Chooses which note from your active scale (1st through 7th) the track will trigger.</li>
-            <li><strong>Period & Offset:</strong> A track with a Period of <code>4</code> and an Offset of <code>0</code> will pulse on ticks 0, 4, 8, 12. Changing the Offset to <code>1</code> shifts it to ticks 1, 5, 9, 13.</li>
-            <li><strong>Activators (On/Total/Offset):</strong> These act as rhythmic "gates." For example, <code>2/4/0</code> means the gate is open for 2 ticks, then closed for 2 ticks in a 4-tick loop.</li>
-            <li><strong>Master vs. Track:</strong> Master Activators act as a global mute—if the master gate is closed, the entire grid is muted for that tick (shown as dim columns).</li>
+            <li><strong>Period & Offset:</strong> A track with a Period of 4 and an Offset of 0 pulses on ticks 0, 4, 8, 12. Changing the Offset to 1 shifts it to ticks 1, 5, 9, 13.</li>
+            <li><strong>Gate Activators (On/Total/Offset):</strong> These act as rhythmic filters. E.g., setting Gate On to 2 and Gate Total to 4 means the gate is open for 2 ticks, then closed for 2 ticks. A note only plays if its Period pulse hits an open gate.</li>
+            <li><strong>Master Gates:</strong> Master Gates act as a global mute. If the master gate is closed, the entire grid is muted for that tick (shown as dim columns).</li>
         </ul>
     </div>
 
-    <div class="header-row">
+    <div class="header-row" style="background: #1f1f1f; padding: 15px; border-radius: 8px; border-left: 4px solid #cf6679;">
         <div class="input-group">
             <label>Global Resolution (Ticks)</label>
-            <input type="number" id="globalRes" value="32" style="width: 60px;" oninput="generate()">
+            <input type="number" id="globalRes" value="32" class="num-md" oninput="generate()">
         </div>
-        <div id="masterActivators" class="row" style="margin-bottom: 0;">
-            <div class="input-group">
-                <label>Master Activators</label>
-                <input type="text" id="masterInput" value="2/4/0" placeholder="2/4/0 1/8/2">
-            </div>
-            <button onclick="generate()">Apply Master</button>
+        <div class="row" style="margin-bottom: 0;">
+            <div class="input-group"><label>Master Gate On</label><input type="number" id="masterOn" value="2" min="1" class="num-sm" oninput="generate()"></div>
+            <div class="input-group"><label>Master Gate Total</label><input type="number" id="masterTotal" value="4" min="1" class="num-sm" oninput="generate()"></div>
+            <div class="input-group"><label>Master Gate Offset</label><input type="number" id="masterOffset" value="0" min="0" class="num-sm" oninput="generate()"></div>
         </div>
     </div>
 
-    <div class="header-row" style="margin-top: 20px;">
+    <div class="header-row" style="margin-top: 25px;">
         <h3>Beat Tracks</h3>
         <button onclick="addTrack()" style="background: var(--secondary); color: black;">+ Add Track</button>
     </div>
@@ -169,14 +170,12 @@
     let intervals = [0, 2, 4, 5, 7, 9, 11]; 
     let currentModeName = "Ionian (Major)"; 
     let currentScaleNotes = []; 
-    let currentScaleMidi = []; // Used for generating exact audio frequencies
+    let currentScaleMidi = []; 
 
     function calculateScale() {
         const root1Index = parseInt(document.getElementById('rootNote').value);
         currentScaleNotes = intervals.map(s => chromatic[(root1Index + s) % 12]);
-        
-        // Map to MIDI values (Middle C is 60. root1Index 0 = C4 = 60)
-        currentScaleMidi = intervals.map(s => 60 + root1Index + s); 
+        currentScaleMidi = intervals.map(s => 60 + root1Index + s); // Middle C = 60
 
         const primaryRootName = chromatic[root1Index];
         let displayHtml = `<div style="color: var(--secondary); font-weight:bold;">${primaryRootName} ${currentModeName}: ${currentScaleNotes.join(" — ")}</div>`;
@@ -302,14 +301,25 @@
 
     // --- Rhythm Logic & Sequencer ---
     let tracks = [
-        { id: Date.now(), period: 4, offset: 0, activators: "1/1/0", degree: 1 },
-        { id: Date.now()+1, period: 3, offset: 1, activators: "1/1/0", degree: 3 }
+        { id: Date.now(), degree: 1, period: 4, offset: 0, actOn: 1, actTotal: 1, actOffset: 0 },
+        { id: Date.now()+1, degree: 3, period: 3, offset: 1, actOn: 1, actTotal: 1, actOffset: 0 }
     ];
-    let playbackGrid = []; // Array of Arrays containing Frequencies to play on each tick
+    let playbackGrid = []; 
 
-    function addTrack() { tracks.push({ id: Date.now(), period: 1, offset: 0, activators: "1/1/0", degree: 1 }); renderTracks(); }
-    function removeTrack(id) { tracks = tracks.filter(t => t.id !== id); renderTracks(); }
-    function updateTrack(id, field, value) { tracks.find(t => t.id === id)[field] = value; generate(); }
+    function addTrack() { 
+        tracks.push({ id: Date.now(), degree: 1, period: 1, offset: 0, actOn: 1, actTotal: 1, actOffset: 0 }); 
+        renderTracks(); 
+    }
+    
+    function removeTrack(id) { 
+        tracks = tracks.filter(t => t.id !== id); 
+        renderTracks(); 
+    }
+    
+    function updateTrack(id, field, value) { 
+        tracks.find(t => t.id === id)[field] = value; 
+        generate(); 
+    }
 
     function renderTracks() {
         const container = document.getElementById('tracksContainer');
@@ -331,10 +341,16 @@
                             <option value="7" ${t.degree === 7 ? 'selected' : ''}>7th</option>
                         </select>
                     </div>
-                    <div class="input-group"><label>Period</label><input type="number" value="${t.period}" oninput="updateTrack(${t.id}, 'period', parseInt(this.value))" style="width:60px"></div>
-                    <div class="input-group"><label>Offset</label><input type="number" value="${t.offset}" oninput="updateTrack(${t.id}, 'offset', parseInt(this.value))" style="width:60px"></div>
-                    <div class="input-group"><label>Activators (On/Total/Offset)</label><input type="text" value="${t.activators}" oninput="updateTrack(${t.id}, 'activators', this.value)" style="width:200px"></div>
-                    <button onclick="removeTrack(${t.id})" style="background:#cf6679">×</button>
+                    <div class="input-group"><label>Period</label><input type="number" value="${t.period}" min="1" oninput="updateTrack(${t.id}, 'period', parseInt(this.value) || 1)" class="num-sm"></div>
+                    <div class="input-group"><label>Offset</label><input type="number" value="${t.offset}" min="0" oninput="updateTrack(${t.id}, 'offset', parseInt(this.value) || 0)" class="num-sm"></div>
+                    
+                    <div style="width: 2px; background: #444; margin: 0 5px; height: 40px; align-self: center;"></div>
+                    
+                    <div class="input-group"><label>Gate On</label><input type="number" value="${t.actOn}" min="1" oninput="updateTrack(${t.id}, 'actOn', parseInt(this.value) || 1)" class="num-sm"></div>
+                    <div class="input-group"><label>Gate Total</label><input type="number" value="${t.actTotal}" min="1" oninput="updateTrack(${t.id}, 'actTotal', parseInt(this.value) || 1)" class="num-sm"></div>
+                    <div class="input-group"><label>Gate Offset</label><input type="number" value="${t.actOffset}" min="0" oninput="updateTrack(${t.id}, 'actOffset', parseInt(this.value) || 0)" class="num-sm"></div>
+                    
+                    <button onclick="removeTrack(${t.id})" style="background:#cf6679; margin-left: auto;">×</button>
                 </div>
             `;
             container.appendChild(div);
@@ -342,22 +358,20 @@
         generate();
     }
 
-    function checkActivator(tick, str) {
-        if (!str.trim()) return true;
-        const cycles = str.trim().split(/\s+/);
-        return cycles.every(c => {
-            const parts = c.split('/');
-            if(parts.length < 2) return true;
-            return ((tick + (Number(parts[2]) || 0)) % Number(parts[1])) < Number(parts[0]);
-        });
+    function checkGate(tick, on, total, offset) {
+        if (!total || total <= 0) return true;
+        const pos = (tick + (offset || 0)) % total;
+        return pos < on;
     }
 
     function generate() {
-        const res = parseInt(document.getElementById('globalRes').value);
-        const masterStr = document.getElementById('masterInput').value;
-        const output = document.getElementById('rhythmOutput');
+        const res = parseInt(document.getElementById('globalRes').value) || 16;
         
-        // Reset the audio playback array
+        const mOn = parseInt(document.getElementById('masterOn').value) || 1;
+        const mTotal = parseInt(document.getElementById('masterTotal').value) || 1;
+        const mOff = parseInt(document.getElementById('masterOffset').value) || 0;
+        
+        const output = document.getElementById('rhythmOutput');
         playbackGrid = Array.from({length: res}, () => []);
 
         let html = '<div class="tick-ruler">';
@@ -369,11 +383,11 @@
             html += `<div class="seq-row"><div class="seq-label" title="Degree ${degree}">${noteName}</div>`;
             
             for (let i = 0; i < res; i++) {
-                const isMasterOn = checkActivator(i, masterStr);
+                const isMasterOn = checkGate(i, mOn, mTotal, mOff);
                 let isNoteTriggered = false;
 
                 tracks.forEach(t => {
-                    if (t.degree === degree && (i - t.offset) % t.period === 0 && i >= t.offset && checkActivator(i, t.activators)) {
+                    if (t.degree === degree && (i - t.offset) % t.period === 0 && i >= t.offset && checkGate(i, t.actOn, t.actTotal, t.actOffset)) {
                         isNoteTriggered = true;
                     }
                 });
@@ -383,7 +397,6 @@
                 if (!isMasterOn) cellClass += ' master-off';
                 else if (active) {
                     cellClass += ' on';
-                    // Populate Audio Data
                     const midiNote = currentScaleMidi[degree - 1];
                     const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
                     playbackGrid[i].push(freq);
@@ -420,19 +433,18 @@
             btn.innerHTML = '▶ Play';
             btn.style.background = 'var(--secondary)';
             clearTimeout(timerID);
-            updatePlayheadUI(-1); // Clear UI
+            updatePlayheadUI(-1); 
         }
     }
 
     function schedule() {
         const bpm = parseInt(document.getElementById('bpmInput').value) || 120;
-        const secondsPerTick = (60.0 / bpm) / 4; // Assuming each tick is a 16th note (4 ticks per beat)
-        const res = parseInt(document.getElementById('globalRes').value);
+        const secondsPerTick = (60.0 / bpm) / 4; 
+        const res = parseInt(document.getElementById('globalRes').value) || 16;
 
         while (nextNoteTime < audioCtx.currentTime + 0.1) {
             playTick(currentTick, nextNoteTime, secondsPerTick);
             
-            // Sync UI visually via standard timeout mapped to audio context time diff
             const timeToPlay = (nextNoteTime - audioCtx.currentTime) * 1000;
             const tickToHighlight = currentTick;
             setTimeout(() => updatePlayheadUI(tickToHighlight), timeToPlay);
@@ -450,10 +462,9 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             
-            osc.type = 'sine'; // Sine waves stack well for chords
+            osc.type = 'sine'; 
             osc.frequency.setValueAtTime(freq, time);
             
-            // Simple Envelope to avoid clipping
             gain.gain.setValueAtTime(0, time);
             gain.gain.linearRampToValueAtTime(0.2, time + 0.02);
             gain.gain.exponentialRampToValueAtTime(0.001, time + duration - 0.01);
