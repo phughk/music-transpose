@@ -14,7 +14,8 @@
         .row { display: flex; gap: 10px; margin-bottom: 15px; align-items: flex-end; flex-wrap: wrap; }
         .input-group { display: flex; flex-direction: column; gap: 5px; }
         input, select, textarea { background: #3d3d3d; border: 1px solid #555; color: white; padding: 6px; border-radius: 4px; }
-        button { background: var(--accent); color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button { background: var(--accent); color: black; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:active { transform: scale(0.95); }
         .preset-btn { background: #333; color: white; border: 1px solid #555; }
         .preset-btn:hover { background: #555; }
         
@@ -38,17 +39,23 @@
         .sequencer-grid { display: flex; flex-direction: column; gap: 4px; margin-top: 15px; overflow-x: auto; padding: 10px; background: #000; border-radius: 8px; }
         .seq-row { display: flex; gap: 4px; align-items: center; }
         .seq-label { width: 45px; font-size: 0.8rem; font-weight: bold; color: var(--secondary); text-align: right; padding-right: 8px; flex-shrink: 0; }
-        .seq-cell { width: 22px; height: 22px; border-radius: 2px; background: #222; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #555; flex-shrink: 0; }
+        .seq-cell { width: 22px; height: 22px; border-radius: 2px; background: #222; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #555; flex-shrink: 0; transition: background 0.1s; }
         .seq-cell.on { background: var(--secondary); color: black; box-shadow: 0 0 8px var(--secondary); }
         .seq-cell.master-off { border: 1px solid #cf6679; background: transparent; opacity: 0.2; color: transparent; }
-        .tick-ruler { display: flex; gap: 4px; margin-left: 53px; margin-bottom: 5px; }
-        .tick-label { width: 22px; text-align: center; font-size: 0.6rem; color: #777; flex-shrink: 0; }
+        
+        /* Playhead Highlights */
+        .seq-cell.playing { outline: 2px solid white; transform: scale(1.15); z-index: 10; background: #fff; box-shadow: 0 0 15px white; }
+        .tick-label.playing { color: white; font-weight: bold; transform: scale(1.2); }
 
-        /* NEW: Instructions Panel Styles */
+        .tick-ruler { display: flex; gap: 4px; margin-left: 53px; margin-bottom: 5px; }
+        .tick-label { width: 22px; text-align: center; font-size: 0.6rem; color: #777; flex-shrink: 0; transition: color 0.1s; }
+
         .instructions { background: #222; border-left: 4px solid var(--accent); padding: 15px; margin-bottom: 25px; border-radius: 4px; font-size: 0.9rem; line-height: 1.6; }
         .instructions ul { margin-top: 8px; margin-bottom: 0; padding-left: 20px; }
         .instructions li { margin-bottom: 6px; }
         .instructions code { background: #000; padding: 2px 6px; border-radius: 3px; color: var(--secondary); font-family: monospace; font-size: 0.95rem; }
+        
+        .play-controls { display: flex; gap: 15px; align-items: flex-end; background: #1f1f1f; padding: 10px 20px; border-radius: 8px; border: 1px solid #444; }
     </style>
 </head>
 <body>
@@ -104,18 +111,20 @@
                 <select id="cr-chord" onchange="syncChordData('chord')"></select>
             </div>
         </div>
-
-        <div id="chordNotesDisplay" class="chord-notes-display">
-        </div>
+        <div id="chordNotesDisplay" class="chord-notes-display"></div>
     </div>
 </div>
 
 <div class="container">
-    <div class="header-row">
+    <div class="header-row" style="margin-bottom: 15px;">
         <h1>Composite Rhythm Sequencer</h1>
-        <div class="input-group">
-            <label>Global Resolution (Ticks)</label>
-            <input type="number" id="globalRes" value="32" style="width: 60px;" oninput="generate()">
+        
+        <div class="play-controls">
+            <div class="input-group">
+                <label>Tempo (BPM)</label>
+                <input type="number" id="bpmInput" value="120" style="width: 70px; text-align: center;">
+            </div>
+            <button id="playBtn" onclick="togglePlay()" style="background: var(--secondary); color: black; font-size: 1.1rem; padding: 10px 20px;">▶ Play</button>
         </div>
     </div>
 
@@ -124,19 +133,27 @@
         <ul>
             <li><strong>Scale Degree:</strong> Chooses which note from your active scale (1st through 7th) the track will trigger.</li>
             <li><strong>Period & Offset:</strong> A track with a Period of <code>4</code> and an Offset of <code>0</code> will pulse on ticks 0, 4, 8, 12. Changing the Offset to <code>1</code> shifts it to ticks 1, 5, 9, 13.</li>
-            <li><strong>Activators (On/Total/Offset):</strong> These act as rhythmic "gates." For example, <code>2/4/0</code> means the gate is open for 2 ticks, then closed for 2 ticks in a 4-tick loop. A note will only play if its Period pulse aligns with an open gate.</li>
-            <li><strong>Master vs. Track:</strong> Track Activators only filter their specific row. Master Activators act as a global mute—if the master gate is closed, the entire grid is muted for that tick (shown as dim columns).</li>
+            <li><strong>Activators (On/Total/Offset):</strong> These act as rhythmic "gates." For example, <code>2/4/0</code> means the gate is open for 2 ticks, then closed for 2 ticks in a 4-tick loop.</li>
+            <li><strong>Master vs. Track:</strong> Master Activators act as a global mute—if the master gate is closed, the entire grid is muted for that tick (shown as dim columns).</li>
         </ul>
     </div>
 
-    <h3>1. Master Activators</h3>
-    <div id="masterActivators" class="row">
-        <input type="text" id="masterInput" value="2/4/0" placeholder="2/4/0 1/8/2">
-        <button onclick="generate()">Apply Master</button>
+    <div class="header-row">
+        <div class="input-group">
+            <label>Global Resolution (Ticks)</label>
+            <input type="number" id="globalRes" value="32" style="width: 60px;" oninput="generate()">
+        </div>
+        <div id="masterActivators" class="row" style="margin-bottom: 0;">
+            <div class="input-group">
+                <label>Master Activators</label>
+                <input type="text" id="masterInput" value="2/4/0" placeholder="2/4/0 1/8/2">
+            </div>
+            <button onclick="generate()">Apply Master</button>
+        </div>
     </div>
 
-    <div class="header-row">
-        <h3>2. Beat Tracks</h3>
+    <div class="header-row" style="margin-top: 20px;">
+        <h3>Beat Tracks</h3>
         <button onclick="addTrack()" style="background: var(--secondary); color: black;">+ Add Track</button>
     </div>
     <div id="tracksContainer"></div>
@@ -149,15 +166,19 @@
     const chromatic = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     
     // --- Scale Logic ---
-    let intervals = [0, 2, 4, 5, 7, 9, 11]; // Default to Ionian
+    let intervals = [0, 2, 4, 5, 7, 9, 11]; 
     let currentModeName = "Ionian (Major)"; 
     let currentScaleNotes = []; 
+    let currentScaleMidi = []; // Used for generating exact audio frequencies
 
     function calculateScale() {
         const root1Index = parseInt(document.getElementById('rootNote').value);
         currentScaleNotes = intervals.map(s => chromatic[(root1Index + s) % 12]);
-        const primaryRootName = chromatic[root1Index];
         
+        // Map to MIDI values (Middle C is 60. root1Index 0 = C4 = 60)
+        currentScaleMidi = intervals.map(s => 60 + root1Index + s); 
+
+        const primaryRootName = chromatic[root1Index];
         let displayHtml = `<div style="color: var(--secondary); font-weight:bold;">${primaryRootName} ${currentModeName}: ${currentScaleNotes.join(" — ")}</div>`;
 
         const crString = document.getElementById('cr-chord').value;
@@ -193,56 +214,31 @@
 
     // --- Chord Relationship Logic ---
     const crData = [
-        { chord: "M III m", emotion: "Sadness", spectrum: "Sad" },
-        { chord: "m IV m", emotion: "Tragic", spectrum: "Sad" },
-        { chord: "m V m", emotion: "Tragic", spectrum: "Sad" },
-        { chord: "m V M", emotion: "Bitter Sweet", spectrum: "Sad" },
-        { chord: "m vii M", emotion: "Bitter Sweet", spectrum: "Sad" },
-        { chord: "M II m", emotion: "Bitter Sweet", spectrum: "Sad" },
-        { chord: "m ii m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
-        { chord: "m VII m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
-        { chord: "m VI M", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
-        { chord: "M iii m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
-        { chord: "m II m", emotion: "A Little Uneasy", spectrum: "Evil Sounding" },
-        { chord: "m vii m", emotion: "A Little Uneasy", spectrum: "Evil Sounding" },
-        { chord: "m iii m", emotion: "Otherworldly and Ominous", spectrum: "Evil Sounding" },
-        { chord: "m VI m", emotion: "Otherworldly and Ominous", spectrum: "Evil Sounding" },
-        { chord: "m III m", emotion: "Ominous and Dark Sounding", spectrum: "Evil Sounding" },
-        { chord: "m vi m", emotion: "Ominous and Dark Sounding", spectrum: "Evil Sounding" },
-        { chord: "m IV+ m", emotion: "Antagonism and Danger", spectrum: "Evil Sounding" },
-        { chord: "m VII M", emotion: "Dramatic", spectrum: "Evil/Neutral Sounding" },
-        { chord: "M ii m", emotion: "Dramatic", spectrum: "Evil/Neutral Sounding" },
-        { chord: "m II M", emotion: "Mysterious/Dark comedy", spectrum: "Evil/Neutral Sounding" },
-        { chord: "M vii m", emotion: "Mysterious/Dark comedy", spectrum: "Evil/Neutral Sounding" },
-        { chord: "m IV+ M", emotion: "Outer Space", spectrum: "Evil/Neutral Sounding" },
-        { chord: "M IV+ m", emotion: "Outer Space", spectrum: "Evil/Neutral Sounding" },
-        { chord: "M ii M", emotion: "Exotic/Cowboy/Enchanted Forest", spectrum: "Neutral Sounding" },
-        { chord: "M VII M", emotion: "Exotic/Cowboy/Enchanted Forest", spectrum: "Neutral Sounding" },
-        { chord: "M IV+ M", emotion: "Outer Space (Neutral)", spectrum: "Neutral Sounding" },
-        { chord: "M VII m", emotion: "Cautious but Optimistic", spectrum: "Neutral Sounding" },
-        { chord: "m ii M", emotion: "Cautious but Optimistic", spectrum: "Neutral Sounding" },
-        { chord: "m iii M", emotion: "Rising Action/Tension", spectrum: "Neutral Sounding" },
-        { chord: "m III M", emotion: "Powerful and Mysterious", spectrum: "Neutral Sounding" },
-        { chord: "M vi m", emotion: "Powerful and Mysterious", spectrum: "Neutral Sounding" },
-        { chord: "m vi M", emotion: "Resolution", spectrum: "Neutral Sounding" },
-        { chord: "M IV m", emotion: "Romantic/Exotic", spectrum: "Good/Neutral Sounding" },
-        { chord: "M VI m", emotion: "Other worldly/Heavenly", spectrum: "Good/Neutral Sounding" },
-        { chord: "m IV M", emotion: "Wonder and Transcendence", spectrum: "Good/Neutral Sounding" },
-        { chord: "M V m", emotion: "Wonder and Transcendence", spectrum: "Good/Neutral Sounding" },
-        { chord: "M II M", emotion: "Protagonism", spectrum: "Good Sounding" },
-        { chord: "M vii M", emotion: "Protagonism", spectrum: "Good Sounding" },
-        { chord: "M iii M", emotion: "Heroic", spectrum: "Good Sounding" },
-        { chord: "M VI M", emotion: "Heroic", spectrum: "Good Sounding" },
-        { chord: "M III M", emotion: "Fantastical", spectrum: "Good Sounding" },
-        { chord: "M vi M", emotion: "Fantastical", spectrum: "Good Sounding" },
-        { chord: "M IV M", emotion: "Good Energy", spectrum: "Good Sounding" },
-        { chord: "M V M", emotion: "Good Energy", spectrum: "Good Sounding" }
+        { chord: "M III m", emotion: "Sadness", spectrum: "Sad" }, { chord: "m IV m", emotion: "Tragic", spectrum: "Sad" },
+        { chord: "m V m", emotion: "Tragic", spectrum: "Sad" }, { chord: "m V M", emotion: "Bitter Sweet", spectrum: "Sad" },
+        { chord: "m vii M", emotion: "Bitter Sweet", spectrum: "Sad" }, { chord: "M II m", emotion: "Bitter Sweet", spectrum: "Sad" },
+        { chord: "m ii m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" }, { chord: "m VII m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
+        { chord: "m VI M", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" }, { chord: "M iii m", emotion: "Mysterious and Tense", spectrum: "Evil Sounding" },
+        { chord: "m II m", emotion: "A Little Uneasy", spectrum: "Evil Sounding" }, { chord: "m vii m", emotion: "A Little Uneasy", spectrum: "Evil Sounding" },
+        { chord: "m iii m", emotion: "Otherworldly and Ominous", spectrum: "Evil Sounding" }, { chord: "m VI m", emotion: "Otherworldly and Ominous", spectrum: "Evil Sounding" },
+        { chord: "m III m", emotion: "Ominous and Dark Sounding", spectrum: "Evil Sounding" }, { chord: "m vi m", emotion: "Ominous and Dark Sounding", spectrum: "Evil Sounding" },
+        { chord: "m IV+ m", emotion: "Antagonism and Danger", spectrum: "Evil Sounding" }, { chord: "m VII M", emotion: "Dramatic", spectrum: "Evil/Neutral Sounding" },
+        { chord: "M ii m", emotion: "Dramatic", spectrum: "Evil/Neutral Sounding" }, { chord: "m II M", emotion: "Mysterious/Dark comedy", spectrum: "Evil/Neutral Sounding" },
+        { chord: "M vii m", emotion: "Mysterious/Dark comedy", spectrum: "Evil/Neutral Sounding" }, { chord: "m IV+ M", emotion: "Outer Space", spectrum: "Evil/Neutral Sounding" },
+        { chord: "M IV+ m", emotion: "Outer Space", spectrum: "Evil/Neutral Sounding" }, { chord: "M ii M", emotion: "Exotic/Cowboy/Enchanted Forest", spectrum: "Neutral Sounding" },
+        { chord: "M VII M", emotion: "Exotic/Cowboy/Enchanted Forest", spectrum: "Neutral Sounding" }, { chord: "M IV+ M", emotion: "Outer Space (Neutral)", spectrum: "Neutral Sounding" },
+        { chord: "M VII m", emotion: "Cautious but Optimistic", spectrum: "Neutral Sounding" }, { chord: "m ii M", emotion: "Cautious but Optimistic", spectrum: "Neutral Sounding" },
+        { chord: "m iii M", emotion: "Rising Action/Tension", spectrum: "Neutral Sounding" }, { chord: "m III M", emotion: "Powerful and Mysterious", spectrum: "Neutral Sounding" },
+        { chord: "M vi m", emotion: "Powerful and Mysterious", spectrum: "Neutral Sounding" }, { chord: "m vi M", emotion: "Resolution", spectrum: "Neutral Sounding" },
+        { chord: "M IV m", emotion: "Romantic/Exotic", spectrum: "Good/Neutral Sounding" }, { chord: "M VI m", emotion: "Other worldly/Heavenly", spectrum: "Good/Neutral Sounding" },
+        { chord: "m IV M", emotion: "Wonder and Transcendence", spectrum: "Good/Neutral Sounding" }, { chord: "M V m", emotion: "Wonder and Transcendence", spectrum: "Good/Neutral Sounding" },
+        { chord: "M II M", emotion: "Protagonism", spectrum: "Good Sounding" }, { chord: "M vii M", emotion: "Protagonism", spectrum: "Good Sounding" },
+        { chord: "M iii M", emotion: "Heroic", spectrum: "Good Sounding" }, { chord: "M VI M", emotion: "Heroic", spectrum: "Good Sounding" },
+        { chord: "M III M", emotion: "Fantastical", spectrum: "Good Sounding" }, { chord: "M vi M", emotion: "Fantastical", spectrum: "Good Sounding" },
+        { chord: "M IV M", emotion: "Good Energy", spectrum: "Good Sounding" }, { chord: "M V M", emotion: "Good Energy", spectrum: "Good Sounding" }
     ];
 
-    const intervalMap = {
-        "ii": 1, "II": 2, "iii": 3, "III": 4, "IV": 5, "IV+": 6,
-        "V": 7, "vi": 8, "VI": 9, "vii": 10, "VII": 11
-    };
+    const intervalMap = { "ii": 1, "II": 2, "iii": 3, "III": 4, "IV": 5, "IV+": 6, "V": 7, "vi": 8, "VI": 9, "vii": 10, "VII": 11 };
 
     function initChordMatrix() {
         const spectrums = [...new Set(crData.map(item => item.spectrum))];
@@ -250,14 +246,9 @@
         const chords = [...new Set(crData.map(item => item.chord))];
 
         const populateSelect = (id, arr) => {
-            const select = document.getElementById(id);
-            select.innerHTML = arr.map(val => `<option value="${val}">${val}</option>`).join('');
+            document.getElementById(id).innerHTML = arr.map(val => `<option value="${val}">${val}</option>`).join('');
         };
-
-        populateSelect('cr-spectrum', spectrums);
-        populateSelect('cr-emotion', emotions);
-        populateSelect('cr-chord', chords);
-        
+        populateSelect('cr-spectrum', spectrums); populateSelect('cr-emotion', emotions); populateSelect('cr-chord', chords);
         syncChordData('chord');
     }
 
@@ -267,25 +258,15 @@
         const chordSelect = document.getElementById('cr-chord');
 
         let targetEntry;
-
         if (sourceField === 'chord') {
             targetEntry = crData.find(item => item.chord === chordSelect.value);
-            if (targetEntry) {
-                emotionSelect.value = targetEntry.emotion;
-                spectrumSelect.value = targetEntry.spectrum;
-            }
+            if (targetEntry) { emotionSelect.value = targetEntry.emotion; spectrumSelect.value = targetEntry.spectrum; }
         } else if (sourceField === 'emotion') {
             targetEntry = crData.find(item => item.emotion === emotionSelect.value);
-            if (targetEntry) {
-                chordSelect.value = targetEntry.chord;
-                spectrumSelect.value = targetEntry.spectrum;
-            }
+            if (targetEntry) { chordSelect.value = targetEntry.chord; spectrumSelect.value = targetEntry.spectrum; }
         } else if (sourceField === 'spectrum') {
             targetEntry = crData.find(item => item.spectrum === spectrumSelect.value);
-            if (targetEntry) {
-                chordSelect.value = targetEntry.chord;
-                emotionSelect.value = targetEntry.emotion;
-            }
+            if (targetEntry) { chordSelect.value = targetEntry.chord; emotionSelect.value = targetEntry.emotion; }
         }
         calculateScale();
     }
@@ -298,30 +279,20 @@
         const parts = crString.split(' ');
         if (parts.length !== 3) return;
 
-        const q1 = parts[0];       
-        const intSym = parts[1];   
-        const q2 = parts[2];       
-
+        const q1 = parts[0], intSym = parts[1], q2 = parts[2];       
         const semitones = intervalMap[intSym] || 0;
-        const root1Index = rootIndex;
-        const root2Index = (rootIndex + semitones) % 12;
+        const root1Index = rootIndex, root2Index = (rootIndex + semitones) % 12;
 
         const buildChord = (rIdx, quality) => {
             const thirdOffset = (quality === 'M') ? 4 : 3;
             const fifthOffset = 7;
-            
             const rootNote = chromatic[rIdx];
             const thirdNote = chromatic[(rIdx + thirdOffset) % 12];
             const fifthNote = chromatic[(rIdx + fifthOffset) % 12];
-            
-            const name = `${rootNote} ${quality === 'M' ? 'Major' : 'minor'}`;
-            const spelling = `${rootNote} - ${thirdNote} - ${fifthNote}`;
-            return { name, spelling };
+            return { name: `${rootNote} ${quality === 'M' ? 'Major' : 'minor'}`, spelling: `${rootNote} - ${thirdNote} - ${fifthNote}` };
         };
 
-        const chord1 = buildChord(root1Index, q1);
-        const chord2 = buildChord(root2Index, q2);
-
+        const chord1 = buildChord(root1Index, q1), chord2 = buildChord(root2Index, q2);
         document.getElementById('chordNotesDisplay').innerHTML = `
             <span class="chord-name">${chord1.name}</span> <span class="chord-spelling">(${chord1.spelling})</span>
             <span style="margin: 0 15px; color: white;">➔</span>
@@ -329,24 +300,16 @@
         `;
     }
 
-    // --- Rhythm Logic with Scale Degrees ---
-    let tracks = [{ id: Date.now(), period: 4, offset: 0, activators: "1/1/0", degree: 1 }];
+    // --- Rhythm Logic & Sequencer ---
+    let tracks = [
+        { id: Date.now(), period: 4, offset: 0, activators: "1/1/0", degree: 1 },
+        { id: Date.now()+1, period: 3, offset: 1, activators: "1/1/0", degree: 3 }
+    ];
+    let playbackGrid = []; // Array of Arrays containing Frequencies to play on each tick
 
-    function addTrack() {
-        tracks.push({ id: Date.now(), period: 1, offset: 0, activators: "1/1/0", degree: 1 });
-        renderTracks();
-    }
-
-    function removeTrack(id) {
-        tracks = tracks.filter(t => t.id !== id);
-        renderTracks();
-    }
-
-    function updateTrack(id, field, value) {
-        const track = tracks.find(t => t.id === id);
-        track[field] = value;
-        generate();
-    }
+    function addTrack() { tracks.push({ id: Date.now(), period: 1, offset: 0, activators: "1/1/0", degree: 1 }); renderTracks(); }
+    function removeTrack(id) { tracks = tracks.filter(t => t.id !== id); renderTracks(); }
+    function updateTrack(id, field, value) { tracks.find(t => t.id === id)[field] = value; generate(); }
 
     function renderTracks() {
         const container = document.getElementById('tracksContainer');
@@ -368,9 +331,9 @@
                             <option value="7" ${t.degree === 7 ? 'selected' : ''}>7th</option>
                         </select>
                     </div>
-                    <div class="input-group"><label>Period</label><input type="number" value="${t.period}" oninput="updateTrack(${t.id}, 'period', parseInt(this.value))" style="width:50px"></div>
-                    <div class="input-group"><label>Offset</label><input type="number" value="${t.offset}" oninput="updateTrack(${t.id}, 'offset', parseInt(this.value))" style="width:50px"></div>
-                    <div class="input-group"><label>Track Activators</label><input type="text" value="${t.activators}" oninput="updateTrack(${t.id}, 'activators', this.value)" style="width:200px"></div>
+                    <div class="input-group"><label>Period</label><input type="number" value="${t.period}" oninput="updateTrack(${t.id}, 'period', parseInt(this.value))" style="width:60px"></div>
+                    <div class="input-group"><label>Offset</label><input type="number" value="${t.offset}" oninput="updateTrack(${t.id}, 'offset', parseInt(this.value))" style="width:60px"></div>
+                    <div class="input-group"><label>Activators (On/Total/Offset)</label><input type="text" value="${t.activators}" oninput="updateTrack(${t.id}, 'activators', this.value)" style="width:200px"></div>
                     <button onclick="removeTrack(${t.id})" style="background:#cf6679">×</button>
                 </div>
             `;
@@ -385,11 +348,7 @@
         return cycles.every(c => {
             const parts = c.split('/');
             if(parts.length < 2) return true;
-            const on = Number(parts[0]);
-            const total = Number(parts[1]);
-            const offset = Number(parts[2]) || 0;
-            const pos = (tick + offset) % total;
-            return pos < on;
+            return ((tick + (Number(parts[2]) || 0)) % Number(parts[1])) < Number(parts[0]);
         });
     }
 
@@ -398,46 +357,123 @@
         const masterStr = document.getElementById('masterInput').value;
         const output = document.getElementById('rhythmOutput');
         
+        // Reset the audio playback array
+        playbackGrid = Array.from({length: res}, () => []);
+
         let html = '<div class="tick-ruler">';
-        for(let i=0; i<res; i++) {
-            html += `<div class="tick-label">${i}</div>`;
-        }
+        for(let i=0; i<res; i++) html += `<div class="tick-label" data-tick="${i}">${i}</div>`;
         html += '</div>';
 
         for (let degree = 7; degree >= 1; degree--) {
             const noteName = currentScaleNotes[degree - 1] || "?"; 
-            
-            html += `<div class="seq-row">
-                        <div class="seq-label" title="Degree ${degree}">${noteName}</div>`;
+            html += `<div class="seq-row"><div class="seq-label" title="Degree ${degree}">${noteName}</div>`;
             
             for (let i = 0; i < res; i++) {
                 const isMasterOn = checkActivator(i, masterStr);
                 let isNoteTriggered = false;
 
                 tracks.forEach(t => {
-                    if (t.degree === degree) {
-                        if ((i - t.offset) % t.period === 0 && i >= t.offset) {
-                            if (checkActivator(i, t.activators)) {
-                                isNoteTriggered = true;
-                            }
-                        }
+                    if (t.degree === degree && (i - t.offset) % t.period === 0 && i >= t.offset && checkActivator(i, t.activators)) {
+                        isNoteTriggered = true;
                     }
                 });
 
                 const active = isMasterOn && isNoteTriggered;
-                let cellClass = 'seq-cell';
+                let cellClass = `seq-cell`;
                 if (!isMasterOn) cellClass += ' master-off';
-                else if (active) cellClass += ' on';
+                else if (active) {
+                    cellClass += ' on';
+                    // Populate Audio Data
+                    const midiNote = currentScaleMidi[degree - 1];
+                    const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+                    playbackGrid[i].push(freq);
+                }
 
-                html += `<div class="${cellClass}">${active ? '♪' : ''}</div>`;
+                html += `<div class="${cellClass}" data-tick="${i}">${active ? '♪' : ''}</div>`;
             }
             html += `</div>`;
         }
-        
         output.innerHTML = html;
     }
 
-    // Init
+    // --- Web Audio API Engine ---
+    let audioCtx = null;
+    let isPlaying = false;
+    let currentTick = 0;
+    let nextNoteTime = 0;
+    let timerID;
+
+    function togglePlay() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        isPlaying = !isPlaying;
+        const btn = document.getElementById('playBtn');
+        
+        if (isPlaying) {
+            btn.innerHTML = '⏹ Stop';
+            btn.style.background = '#cf6679';
+            currentTick = 0;
+            nextNoteTime = audioCtx.currentTime + 0.05;
+            schedule();
+        } else {
+            btn.innerHTML = '▶ Play';
+            btn.style.background = 'var(--secondary)';
+            clearTimeout(timerID);
+            updatePlayheadUI(-1); // Clear UI
+        }
+    }
+
+    function schedule() {
+        const bpm = parseInt(document.getElementById('bpmInput').value) || 120;
+        const secondsPerTick = (60.0 / bpm) / 4; // Assuming each tick is a 16th note (4 ticks per beat)
+        const res = parseInt(document.getElementById('globalRes').value);
+
+        while (nextNoteTime < audioCtx.currentTime + 0.1) {
+            playTick(currentTick, nextNoteTime, secondsPerTick);
+            
+            // Sync UI visually via standard timeout mapped to audio context time diff
+            const timeToPlay = (nextNoteTime - audioCtx.currentTime) * 1000;
+            const tickToHighlight = currentTick;
+            setTimeout(() => updatePlayheadUI(tickToHighlight), timeToPlay);
+            
+            currentTick = (currentTick + 1) % res;
+            nextNoteTime += secondsPerTick;
+        }
+        timerID = setTimeout(schedule, 25);
+    }
+
+    function playTick(tick, time, duration) {
+        if (!playbackGrid[tick] || playbackGrid[tick].length === 0) return;
+        
+        playbackGrid[tick].forEach(freq => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'sine'; // Sine waves stack well for chords
+            osc.frequency.setValueAtTime(freq, time);
+            
+            // Simple Envelope to avoid clipping
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(0.2, time + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + duration - 0.01);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.start(time);
+            osc.stop(time + duration);
+        });
+    }
+
+    function updatePlayheadUI(tick) {
+        document.querySelectorAll('.seq-cell.playing, .tick-label.playing').forEach(el => el.classList.remove('playing'));
+        if (tick >= 0) {
+            document.querySelectorAll(`.seq-cell[data-tick="${tick}"], .tick-label[data-tick="${tick}"]`).forEach(el => el.classList.add('playing'));
+        }
+    }
+
+    // Init App
     initChordMatrix();
     renderTracks();
 </script>
