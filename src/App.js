@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { CHROMATIC, ALL_MODES, CHORD_RELATIONSHIP_DATA, INTERVAL_MAP } from './constants';
-import { buildChord } from './utils';
+import { buildChord, findMatchingModes } from './utils';
 import ScaleTransposer from './components/ScaleTransposer';
+import IntervalEmotionMatrix from './components/IntervalEmotionMatrix';
 import ChordRelationshipMatrix from './components/ChordRelationshipMatrix';
 import ChordDictionaryVisualizer from './components/ChordDictionaryVisualizer';
 import TimeSignatureVisualizer from './components/TimeSignatureVisualizer';
 import RhythmSequencer from './components/RhythmSequencer';
+import GrooveMelodyGenerator from './components/GrooveMelodyGenerator';
 
 function App() {
   // --- Scale & Mode State (Shared) ---
@@ -24,6 +26,11 @@ function App() {
   const [spectrum, setSpectrum] = useState(CHORD_RELATIONSHIP_DATA[0].spectrum);
   const [emotion, setEmotion] = useState(CHORD_RELATIONSHIP_DATA[0].emotion);
   const [chordRel, setChordRel] = useState(CHORD_RELATIONSHIP_DATA[0].chord);
+
+  // --- Time Signature State (Shared) ---
+  const [tsNum, setTsNum] = useState(9);
+  const [tsDen, setTsDen] = useState("8");
+  const [tsPattern, setTsPattern] = useState("3+3+3");
 
   const audioCtxRef = useRef(null);
 
@@ -121,6 +128,11 @@ function App() {
         chordNotes={chordNotes}
       />
 
+      <IntervalEmotionMatrix 
+        rootNote={rootNote}
+        audioCtxRef={audioCtxRef}
+      />
+
       <ChordRelationshipMatrix 
         spectrum={spectrum}
         emotion={emotion}
@@ -133,7 +145,23 @@ function App() {
 
       <ChordDictionaryVisualizer audioCtxRef={audioCtxRef} />
 
-      <TimeSignatureVisualizer />
+      <TimeSignatureVisualizer 
+        tsNum={tsNum}
+        setTsNum={setTsNum}
+        tsDen={tsDen}
+        setTsDen={setTsDen}
+        tsPattern={tsPattern}
+        setTsPattern={setTsPattern}
+      />
+
+      <GrooveMelodyGenerator 
+        currentScaleMidi={currentScaleMidi}
+        currentScaleNotes={currentScaleNotes}
+        audioCtxRef={audioCtxRef}
+        tsNum={tsNum}
+        tsDen={tsDen}
+        tsPattern={tsPattern}
+      />
 
       <RhythmSequencer 
         currentScaleMidi={currentScaleMidi}

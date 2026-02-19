@@ -69,3 +69,53 @@ export const EXTENDED_CHORDS = {
   "Suspended 4": { intervals: [0, 5, 7], desc: "Unresolved and floating. Feels like it's holding its breath before resolving." },
   "Power": { intervals: [0, 7], desc: "Strong, neutral, and punchy. The driving backbone of rock and heavy metal." }
 };
+
+export const GROOVE_PRESETS = {
+  "Folk Happy": {
+    ts: "4/4",
+    pattern: [1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0], // 16th notes
+    description: "Bouncy and syncopated 4/4 feel."
+  },
+  "Folk Combat": {
+    ts: "4/4",
+    pattern: [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0],
+    description: "Driving, aggressive folk rhythm."
+  },
+  "Medieval Happy": {
+    ts: "3/4",
+    pattern: [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0], // 12 ticks (3/4 in 16ths)
+    description: "Dance-like triple meter rhythm."
+  },
+  "Medieval Combat": {
+    ts: "4/4",
+    pattern: [1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1],
+    description: "Steady, martial cadence."
+  },
+  "Irish Jig": {
+    ts: "6/8",
+    pattern: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 12 ticks
+    description: "Classic rolling 6/8 triplet feel."
+  },
+  "Scottish Strathspey": {
+    ts: "4/4",
+    pattern: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1], // Dotted 8th + 16th
+    description: "Characteristic short-long 'Scotch snap' rhythm."
+  }
+};
+
+export const INTERVAL_EMOTIONS = [
+  { semitones: 1, name: "Minor Second", up: "Dark, tense, and crawling. Think 'Jaws' or impending danger.", down: "Deeply unsettling, sigh-like, and heavy." },
+  { semitones: 2, name: "Major Second", up: "Passing, neutral, and gentle. The start of a scale.", down: "Graceful, mellow, and calming." },
+  { semitones: 3, name: "Minor Third", up: "Sad, serious, and bluesy. The foundation of minor keys.", down: "Playful, bird-like, or a 'cuckoo' call." },
+  { semitones: 4, name: "Major Third", up: "Bright, happy, and stable. The foundation of major keys.", down: "Stoic, solid, and comforting." },
+  { semitones: 5, name: "Perfect Fourth", up: "Open, hollow, and heraldic. 'Here Comes the Bride'.", down: "Strong, resolved, and traditional." },
+  { semitones: 6, name: "Tritone", up: "The 'Devil in Music'. Evil, unstable, and extremely tense.", down: "Ominous, eerie, and confusing." },
+  { semitones: 7, name: "Perfect Fifth", up: "Pure, powerful, and medieval. The ultimate stability.", down: "Majestic, solid, and deep." },
+  { semitones: 8, name: "Minor Sixth", up: "Soft, sad, and reaching. 'The Entertainer' start.", down: "Longing, melancholic, and mysterious." },
+  { semitones: 9, name: "Major Sixth", up: "Heroic, hopeful, and sweet. 'My Bonnie Lies Over the Ocean'.", down: "Lush, nostalgic, and warm." },
+  { semitones: 10, name: "Minor Seventh", up: "Mellow, soulful, and bluesy. Leading but stable.", down: "Funky, deep, and slightly restless." },
+  { semitones: 11, name: "Major Seventh", up: "Ethereal, longing, and beautiful dissonance.", down: "Ghostly, pulling, and delicate." },
+  { semitones: 12, name: "Octave", up: "Pure, unified, and bright.", down: "Deep, powerful, and grounded." }
+];
+
+

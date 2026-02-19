@@ -1,11 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { COMMON_GROUPINGS } from '../constants';
 
-function TimeSignatureVisualizer() {
-  const [tsNum, setTsNum] = useState(9);
-  const [tsDen, setTsDen] = useState("8");
-  const [tsPattern, setTsPattern] = useState("3+3+3");
-
+function TimeSignatureVisualizer({ tsNum, setTsNum, tsDen, setTsDen, tsPattern, setTsPattern }) {
   const renderRhythmVisualization = () => {
     const groups = tsPattern.split('+').map(Number);
     let beatCount = 1;
