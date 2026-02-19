@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CHROMATIC, INTERVAL_EMOTIONS } from '../constants';
 
 function IntervalEmotionMatrix({ rootNote, audioCtxRef }) {
+  const [selectedIntervalIdx, setSelectedIntervalIdx] = useState(0);
   const sourceNoteName = CHROMATIC[rootNote];
+  const interval = INTERVAL_EMOTIONS[selectedIntervalIdx];
 
   const playInterval = (semitones, isUp) => {
     if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -19,7 +21,7 @@ function IntervalEmotionMatrix({ rootNote, audioCtxRef }) {
       const gain = audioCtxRef.current.createGain();
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, time + (i * 0.4)); // Stagger the notes
+      osc.frequency.setValueAtTime(freq, time + (i * 0.4));
 
       gain.gain.setValueAtTime(0, time + (i * 0.4));
       gain.gain.linearRampToValueAtTime(0.2, time + (i * 0.4) + 0.05);
@@ -33,48 +35,61 @@ function IntervalEmotionMatrix({ rootNote, audioCtxRef }) {
     });
   };
 
+  const upNote = CHROMATIC[(rootNote + interval.semitones) % 12];
+  const downNote = CHROMATIC[(rootNote - interval.semitones + 12) % 12];
+
   return (
     <div className="container">
       <h1>Interval Emotion Matrix</h1>
       <p style={{ fontSize: '0.9rem', color: '#aaa' }}>
-        Explore the emotional relationship between <strong>{sourceNoteName}</strong> and every other note, both up and down.
+        Explore the emotional relationship between <strong>{sourceNoteName}</strong> and another note.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '15px', marginTop: '20px' }}>
-        {INTERVAL_EMOTIONS.map((interval) => {
-          const upNote = CHROMATIC[(rootNote + interval.semitones) % 12];
-          const downNote = CHROMATIC[(rootNote - interval.semitones + 12) % 12];
+      <div className="row" style={{ background: '#1f1f1f', padding: '15px', borderRadius: '8px', borderLeft: '4px solid var(--accent)', marginTop: '20px' }}>
+        <div className="input-group" style={{ flex: 1 }}>
+          <label>Select Interval</label>
+          <select 
+            value={selectedIntervalIdx} 
+            onChange={(e) => setSelectedIntervalIdx(parseInt(e.target.value))}
+            style={{ width: '100%', fontSize: '1rem' }}
+          >
+            {INTERVAL_EMOTIONS.map((int, idx) => (
+              <option key={idx} value={idx}>{int.name} ({int.semitones}st)</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-          return (
-            <div key={interval.semitones} className="track-card" style={{ borderLeft: '4px solid var(--accent)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <span style={{ fontWeight: 'bold', color: 'var(--secondary)' }}>{interval.name} ({interval.semitones}st)</span>
-              </div>
-              
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '0.85rem', color: '#fff' }}><strong>Up to {upNote}:</strong></div>
-                <div style={{ fontSize: '0.8rem', color: '#aaa', fontStyle: 'italic' }}>{interval.up}</div>
-                <button 
-                  onClick={() => playInterval(interval.semitones, true)} 
-                  style={{ background: '#333', color: 'white', padding: '4px 8px', fontSize: '0.7rem', marginTop: '5px' }}
-                >
-                  🔊 Play {sourceNoteName} ➔ {upNote}
-                </button>
-              </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
+        <div className="track-card" style={{ borderLeft: '4px solid var(--secondary)', margin: 0 }}>
+          <div style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '8px' }}>
+            <strong>Ascending: {sourceNoteName} ➔ {upNote}</strong>
+          </div>
+          <div style={{ fontSize: '0.85rem', color: '#aaa', fontStyle: 'italic', marginBottom: '12px', minHeight: '40px' }}>
+            {interval.up}
+          </div>
+          <button 
+            onClick={() => playInterval(interval.semitones, true)} 
+            style={{ width: '100%', background: 'var(--secondary)', color: 'black' }}
+          >
+            🔊 Play Up
+          </button>
+        </div>
 
-              <div>
-                <div style={{ fontSize: '0.85rem', color: '#fff' }}><strong>Down to {downNote}:</strong></div>
-                <div style={{ fontSize: '0.8rem', color: '#aaa', fontStyle: 'italic' }}>{interval.down}</div>
-                <button 
-                  onClick={() => playInterval(interval.semitones, false)} 
-                  style={{ background: '#333', color: 'white', padding: '4px 8px', fontSize: '0.7rem', marginTop: '5px' }}
-                >
-                  🔊 Play {sourceNoteName} ➔ {downNote}
-                </button>
-              </div>
-            </div>
-          );
-        })}
+        <div className="track-card" style={{ borderLeft: '4px solid #cf6679', margin: 0 }}>
+          <div style={{ fontSize: '0.9rem', color: '#fff', marginBottom: '8px' }}>
+            <strong>Descending: {sourceNoteName} ➔ {downNote}</strong>
+          </div>
+          <div style={{ fontSize: '0.85rem', color: '#aaa', fontStyle: 'italic', marginBottom: '12px', minHeight: '40px' }}>
+            {interval.down}
+          </div>
+          <button 
+            onClick={() => playInterval(interval.semitones, false)} 
+            style={{ width: '100%', background: '#cf6679', color: 'black' }}
+          >
+            🔊 Play Down
+          </button>
+        </div>
       </div>
     </div>
   );
