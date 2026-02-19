@@ -67,12 +67,53 @@
         .rhythm-block.accent { background: rgba(187, 134, 252, 0.15); color: var(--accent); border-color: var(--accent); transform: scale(1.1); box-shadow: 0 0 15px rgba(187, 134, 252, 0.3); }
 
         /* Styles for Chord Dictionary Visualizer */
-        .chord-visualizer { display: flex; gap: 12px; margin-top: 15px; background: #000; padding: 20px; border-radius: 8px; overflow-x: auto; justify-content: center; }
-        .chord-col { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .chord-idx { font-size: 1rem; color: #fff; font-weight: bold; }
-        .chord-dot { width: 35px; height: 35px; border-radius: 10px; border: 2px solid #fff; background: transparent; transition: all 0.2s ease; }
-        .chord-dot.active { background: #fff; box-shadow: 0 0 15px rgba(255, 255, 255, 0.6); }
-        .chord-note-label { font-size: 0.85rem; color: var(--secondary); font-weight: bold; min-height: 18px; text-align: center; }
+    /* Styles for Chord Dictionary Visualizer */
+        .chord-visualizer { 
+            display: flex; 
+            gap: 4px; /* Tighter gap for small screens */
+            margin-top: 15px; 
+            background: #000; 
+            padding: 20px 10px; 
+            border-radius: 8px; 
+            justify-content: space-between; 
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .chord-col { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 10px; 
+            flex: 1 1 0; /* Allows columns to shrink and grow equally */
+            min-width: 0; /* Prevents flexbox from overflowing */
+        }
+        .chord-idx { 
+            font-size: clamp(0.7rem, 2vw, 1rem); /* Scales text smoothly */
+            color: #fff; 
+            font-weight: bold; 
+        }
+        .chord-dot { 
+            width: 100%; 
+            max-width: 35px; /* Caps the size on desktop */
+            aspect-ratio: 1 / 1; /* Keeps the dot perfectly square */
+            height: auto; 
+            border-radius: 25%; /* Adjusts border radius to work with fluid sizing */
+            border: 2px solid #fff; 
+            background: transparent; 
+            transition: all 0.2s ease; 
+            box-sizing: border-box;
+        }
+        .chord-dot.active { 
+            background: #fff; 
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.6); 
+        }
+        .chord-note-label { 
+            font-size: clamp(0.6rem, 1.8vw, 0.85rem); 
+            color: var(--secondary); 
+            font-weight: bold; 
+            min-height: 18px; 
+            text-align: center; 
+        }
     </style>
 </head>
 <body>
