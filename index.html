@@ -419,7 +419,7 @@
         calculateScale();
     }
 
-    function calculateChordNotes() {
+function calculateChordNotes() {
         const rootIndex = parseInt(document.getElementById('rootNote').value);
         const crString = document.getElementById('cr-chord').value;
         if (!crString) return;
@@ -427,10 +427,10 @@
         const parts = crString.split(' ');
         if (parts.length !== 3) return;
 
-        const q1 = parts[0], intSym = parts[1], q2 = parts[2];       
+        const q1 = parts[0], intSym = parts[1], q2 = parts[2];        
         const semitones = intervalMap[intSym] || 0;
-        const root1Index = rootIndex, root2Index = (rootIndex + semitones) % 12;
 
+        // Helper function to build chords
         const buildChord = (rIdx, quality) => {
             const thirdOffset = (quality === 'M') ? 4 : 3;
             const fifthOffset = 7;
@@ -440,11 +440,53 @@
             return { name: `${rootNote} ${quality === 'M' ? 'Major' : 'minor'}`, spelling: `${rootNote} - ${thirdNote} - ${fifthNote}` };
         };
 
-        const chord1 = buildChord(root1Index, q1), chord2 = buildChord(root2Index, q2);
+        // --- 1. Logical Base Calculation ---
+        const root1Index = rootIndex;
+        const root2Index = (rootIndex + semitones) % 12;
+        const chord1 = buildChord(root1Index, q1);
+        const chord2 = buildChord(root2Index, q2);
+
+        // --- 2. Derived Relative Base Calculation ---
+        // Map of how many semitones to shift to find the relative Major (maj) or Minor (min)
+        const modeOffsets = {
+            "Ionian (Major)": { maj: 0, min: 9 },
+            "Dorian": { maj: 10, min: 7 }, 
+            "Phrygian": { maj: 8, min: 5 }, 
+            "Lydian": { maj: 7, min: 4 }, 
+            "Mixolydian": { maj: 5, min: 2 }, 
+            "Aeolian (Minor)": { maj: 3, min: 0 }, 
+            "Locrian": { maj: 1, min: 10 } 
+        };
+        
+        const offsets = modeOffsets[currentModeName] || {maj: 0, min: 9};
+        const isMinor = intervals.includes(3); // Does the scale have a minor 3rd?
+        
+        // If the scale is a minor mode, find the relative minor. If major, find relative major.
+        const relOffset = isMinor ? offsets.min : offsets.maj;
+        const relRootIndex = (rootIndex + relOffset) % 12;
+        const relRoot2Index = (relRootIndex + semitones) % 12;
+
+        const relChord1 = buildChord(relRootIndex, q1);
+        const relChord2 = buildChord(relRoot2Index, q2);
+
+        // --- Render Both to the UI ---
         document.getElementById('chordNotesDisplay').innerHTML = `
-            <span class="chord-name">${chord1.name}</span> <span class="chord-spelling">(${chord1.spelling})</span>
-            <span style="margin: 0 15px; color: white;">➔</span>
-            <span class="chord-name">${chord2.name}</span> <span class="chord-spelling">(${chord2.spelling})</span>
+            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #444;">
+                <div style="font-size: 0.8rem; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">
+                    Logical Base (${chromatic[rootIndex]} ${currentModeName.split(' ')[0]})
+                </div>
+                <span class="chord-name">${chord1.name}</span> <span class="chord-spelling">(${chord1.spelling})</span>
+                <span style="margin: 0 15px; color: white;">➔</span>
+                <span class="chord-name">${chord2.name}</span> <span class="chord-spelling">(${chord2.spelling})</span>
+            </div>
+            <div>
+                <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;">
+                    Derived Relative (${chromatic[relRootIndex]} ${isMinor ? 'Minor' : 'Major'})
+                </div>
+                <span class="chord-name">${relChord1.name}</span> <span class="chord-spelling">(${relChord1.spelling})</span>
+                <span style="margin: 0 15px; color: white;">➔</span>
+                <span class="chord-name">${relChord2.name}</span> <span class="chord-spelling">(${relChord2.spelling})</span>
+            </div>
         `;
     }
 
